@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "madro"
+version = "0.1.0"
+description = "MADRO :: Multi-Agent Data Retrieval Orchestrator"
+authors = ["João Pedro Pinheiro <jpinheiro@inf.puc-rio.br>"]
+packages = [{ include = "madro", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+django = "^6.0"
+pydantic-ai = { version = "^1.80", extras = ["openai"] }
+psycopg = { version = "^3.2", extras = ["binary"] }
+pgvector = "^0.4"
+pyyaml = "^6.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3"
+pytest-django = "^4.10"
+ruff = "^0.11"
+
+[tool.ruff]
+src = ["src"]
+line-length = 100
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "madro.settings"
+pythonpath = ["src"]
+testpaths = ["tests"]
