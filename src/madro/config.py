@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class ModelConfig(BaseModel):
     provider: str = "openai"
     name: str = "gpt-4o"
-    temperature: float = 0.2
+    temperature: float = 0.0
     max_tokens: int = 4096
 
 

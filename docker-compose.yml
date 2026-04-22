@@ -1,5 +1,5 @@
 services:
-  db:
+  madro_db:
     image: pgvector/pgvector:pg17
     environment:
       POSTGRES_DB: madro
@@ -8,7 +8,20 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata_madro:/var/lib/postgresql/data
+
+#  dowser_db:
+#    image: pgvector/pgvector:pg17
+#    environment:
+#      POSTGRES_DB: dowser
+#      POSTGRES_USER: dowser
+#      POSTGRES_PASSWORD: dowser
+#    ports:
+#      - "5433:5432"
+#    volumes:
+#      - /Users/joao.pinheiro/Documents/thesis/dowser_prod-2026_04_15_14_05_26-dump.sql:/tmp/dowser_prod-2026_04_15_14_05_26-dump.sql
+#      - pgdata_dowser:/var/lib/postgresql/data
 
 volumes:
-  pgdata:
+  pgdata_madro:
+#  pgdata_dowser:

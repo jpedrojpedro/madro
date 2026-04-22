@@ -10,6 +10,8 @@ ALLOWED_HOSTS = ["*"]
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
+    # Single App - MADRO
+    "madro",
 ]
 
 MIDDLEWARE = [
