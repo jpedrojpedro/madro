@@ -20,13 +20,13 @@ def list_topics() -> list[dict]:
 
 
 async def categorize_and_assign(agent: AgentModel) -> list[Topic]:
-    prompt = (
-        f"Agent name: {agent.name}\n"
-        f"Description: {agent.description}\n"
-        f"MCP schema: {agent.mcp_schema}\n"
-        f"Candidate topics: {agent.candidate_topics or []}"
-    )
-
+    # prompt = (
+    #     f"Agent name: {agent.name}\n"
+    #     f"Description: {agent.description}\n"
+    #     f"MCP schema: {agent.mcp_schema}\n"
+    #     f"Candidate topics: {agent.candidate_topics or []}"
+    # )
+    prompt = agent.to_yaml()
     result = await categorization_agent.run(prompt)
     assignment: TopicAssignment = result.output
 

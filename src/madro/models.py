@@ -1,7 +1,19 @@
 import uuid
+import yaml
 from django.db import models as db_models
 from django.contrib.postgres.fields import ArrayField
 from madro.utils.fields import TsVectorField, EmbeddingField
+
+
+class YamlExportMixin:
+    def to_yaml(self, *args: str) -> str:
+        fields = args or [
+            f.name
+            for f in self._meta.get_fields()
+            if hasattr(f, "attname") or not f.is_relation
+        ]
+        data = {field: getattr(self, field) for field in fields}
+        return yaml.dump(data, default_flow_style=False, allow_unicode=True)
 
 
 class MessageRole(db_models.TextChoices):
@@ -10,7 +22,7 @@ class MessageRole(db_models.TextChoices):
     SYSTEM = "system"
 
 
-class Thread(db_models.Model):
+class Thread(YamlExportMixin, db_models.Model):
     id = db_models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_at = db_models.DateTimeField(auto_now_add=True)
     updated_at = db_models.DateTimeField(auto_now=True)
@@ -20,7 +32,7 @@ class Thread(db_models.Model):
         managed = False
 
 
-class Message(db_models.Model):
+class Message(YamlExportMixin, db_models.Model):
     id = db_models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     thread = db_models.ForeignKey(Thread, on_delete=db_models.DO_NOTHING, related_name="messages")
     role = db_models.TextField(choices=MessageRole.choices)
@@ -35,7 +47,7 @@ class Message(db_models.Model):
         managed = False
 
 
-class Agent(db_models.Model):
+class Agent(YamlExportMixin, db_models.Model):
     id = db_models.UUIDField(primary_key=True, editable=False)
     name = db_models.TextField()
     description = db_models.TextField()
@@ -48,7 +60,7 @@ class Agent(db_models.Model):
         managed = False
 
 
-class Topic(db_models.Model):
+class Topic(YamlExportMixin, db_models.Model):
     id = db_models.UUIDField(primary_key=True, editable=False)
     name = db_models.TextField()
     description = db_models.TextField()
@@ -58,7 +70,7 @@ class Topic(db_models.Model):
         managed = False
 
 
-class AgentTopic(db_models.Model):
+class AgentTopic(YamlExportMixin, db_models.Model):
     agent = db_models.ForeignKey(Agent, on_delete=db_models.CASCADE)
     topic = db_models.ForeignKey(Topic, on_delete=db_models.CASCADE)
     assigned_at = db_models.DateTimeField(auto_now_add=True)
@@ -77,7 +89,7 @@ class ExecutionStatus(db_models.TextChoices):
     FAILED = "failed"
 
 
-class JobExecution(db_models.Model):
+class JobExecution(YamlExportMixin, db_models.Model):
     job_id = db_models.UUIDField(editable=False)
     thread = db_models.ForeignKey(Thread, on_delete=db_models.DO_NOTHING)
     demand = db_models.ForeignKey(Message, on_delete=db_models.DO_NOTHING)
@@ -91,7 +103,7 @@ class JobExecution(db_models.Model):
         unique_together = [("job_id", "agent")]
 
 
-class JobStatus(db_models.Model):
+class JobStatus(YamlExportMixin, db_models.Model):
     id = db_models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     job_id = db_models.UUIDField()
     agent = db_models.ForeignKey(Agent, on_delete=db_models.DO_NOTHING, db_column="agent_id")
@@ -103,7 +115,7 @@ class JobStatus(db_models.Model):
         managed = False
 
 
-class JobArtifact(db_models.Model):
+class JobArtifact(YamlExportMixin, db_models.Model):
     job_status = db_models.OneToOneField(JobStatus, on_delete=db_models.CASCADE, primary_key=True)
     canonical_text = db_models.TextField()
     confidence_score = db_models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
