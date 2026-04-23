@@ -1,6 +1,6 @@
 from pydantic_ai import Agent
 from madro.models import Agent as AgentModel, Topic, AgentTopic
-from madro.workflows.models import TopicAssignment
+from madro.data_wrappers import TopicAssignment
 from madro.workflows.system_prompts import TopicCategorizationSP
 from madro.config import load_config
 

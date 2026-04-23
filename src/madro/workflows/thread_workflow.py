@@ -3,7 +3,7 @@ from madro.models import Thread, Message, MessageRole
 from madro.workflows.interactive_agent import enrich_prompt
 from madro.workflows.demand_categorization_agent import decompose_demand
 from madro.workflows.publisher import publish
-from madro.workflows.models import DecomposedDemand
+from madro.data_wrappers import DecomposedDemand
 
 
 async def run_thread(thread_id: UUID | None, task_prompt: str) -> tuple[Thread, Message, DecomposedDemand]:

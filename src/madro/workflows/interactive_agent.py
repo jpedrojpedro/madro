@@ -1,5 +1,5 @@
 from pydantic_ai import Agent
-from madro.workflows.models import EnrichedPrompt
+from madro.data_wrappers import EnrichedPrompt
 from madro.workflows.system_prompts import InteractiveAgentSP
 from madro.config import load_config
 

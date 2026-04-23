@@ -1,6 +1,6 @@
 from pydantic_ai import Agent
 from madro.models import Topic
-from madro.workflows.models import DecomposedDemand
+from madro.data_wrappers import DecomposedDemand
 from madro.workflows.system_prompts import DemandCategorizationAgentSP
 from madro.config import load_config
 

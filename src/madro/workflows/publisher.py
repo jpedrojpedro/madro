@@ -1,5 +1,5 @@
 from madro.models import AgentTopic, JobExecution, Message, Thread, Topic
-from madro.workflows.models import DecomposedDemand
+from madro.data_wrappers import DecomposedDemand
 
 
 async def publish(
