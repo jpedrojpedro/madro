@@ -2,6 +2,7 @@ from uuid import UUID
 from madro.models import Thread, Message, MessageRole
 from madro.workflows.interactive_agent import enrich_prompt
 from madro.workflows.demand_categorization_agent import decompose_demand
+from madro.workflows.publisher import publish
 from madro.workflows.models import DecomposedDemand
 
 
@@ -29,5 +30,7 @@ async def run_thread(thread_id: UUID | None, task_prompt: str) -> tuple[Thread, 
         content=enriched,
         sequence_number=last_sequence + 2,
     )
+
+    await publish(thread, user_message, decomposed)
 
     return thread, user_message, decomposed
