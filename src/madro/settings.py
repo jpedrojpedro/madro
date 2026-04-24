@@ -31,6 +31,8 @@ DATABASES = {
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+RETRIEVAL_DB_URL = os.environ.get("RETRIEVAL_DB_URL")
+
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_TZ = True
