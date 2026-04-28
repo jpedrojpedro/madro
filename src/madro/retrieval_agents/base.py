@@ -1,15 +1,18 @@
 from abc import ABC, abstractmethod
 
-import psycopg
+from psycopg import AsyncConnection
+from psycopg.rows import dict_row
 from django.conf import settings
 
 
 class RetrievalAgent(ABC):
     """Base class for local retrieval agents that query a remote Postgres DB."""
 
-    async def connect(self) -> psycopg.AsyncConnection:
-        return await psycopg.AsyncConnection.connect(settings.RETRIEVAL_DB_URL)
+    async def connect(self) -> AsyncConnection:
+        return await AsyncConnection.connect(
+            settings.RETRIEVAL_DB_URL, row_factory=dict_row
+        )
 
     @abstractmethod
-    async def run(self, job_id: str, demand: str, schema: dict) -> str:
+    async def run(self, job_id: str, demand: str, **kwargs) -> str:
         """Execute the retrieval and return the raw result string."""
