@@ -1,6 +1,5 @@
 import importlib
 import httpx
-from openai import AsyncOpenAI
 from madro.models import Agent, JobExecution
 from madro.workflows.normalizer import NormalisedArtifact, normalise
 
@@ -17,7 +16,7 @@ def _load_local_agent(uri: str):
     raise ValueError(f"No RetrievalAgent subclass found in {uri}")
 
 
-async def invoke(job: JobExecution, openai_client: AsyncOpenAI) -> NormalisedArtifact:
+async def invoke(job: JobExecution) -> NormalisedArtifact:
     agent: Agent = job.agent
     payload = {
         "job_id": str(job.job_id),
@@ -38,5 +37,4 @@ async def invoke(job: JobExecution, openai_client: AsyncOpenAI) -> NormalisedArt
         raw=raw,
         source_uri=agent.uri,
         agent_name=agent.name,
-        openai_client=openai_client,
     )

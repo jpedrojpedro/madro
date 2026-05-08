@@ -1,15 +1,26 @@
 import re
 import unicodedata
+import asyncio
 from dataclasses import dataclass
+from functools import partial
 
-import httpx
-from openai import AsyncOpenAI
+from sentence_transformers import SentenceTransformer
 
 _STOPWORDS = frozenset(
     "a an the and or but in on at to for of with is are was were be been".split()
 )
 _CHUNK_SIZE = 512
 _CHUNK_OVERLAP = 64
+_EMBEDDING_MODEL = "nomic-ai/modernbert-embed-base"
+
+_encoder: SentenceTransformer | None = None
+
+
+def _get_encoder() -> SentenceTransformer:
+    global _encoder
+    if _encoder is None:
+        _encoder = SentenceTransformer(_EMBEDDING_MODEL)
+    return _encoder
 
 
 @dataclass
@@ -39,22 +50,20 @@ def _chunk(text: str) -> list[str]:
     return chunks or [text]
 
 
-async def _embed(chunks: list[str], client: AsyncOpenAI) -> list[list[float]]:
-    response = await client.embeddings.create(
-        model="text-embedding-3-small",
-        input=chunks,
-    )
-    return [item.embedding for item in response.data]
+async def _embed(chunks: list[str]) -> list[list[float]]:
+    loop = asyncio.get_event_loop()
+    encoder = _get_encoder()
+    embeddings = await loop.run_in_executor(None, partial(encoder.encode, chunks, convert_to_numpy=False))
+    return [e.tolist() for e in embeddings]
 
 
 async def normalise(
     raw: str,
     source_uri: str,
     agent_name: str,
-    openai_client: AsyncOpenAI,
 ) -> NormalisedArtifact:
     chunks = _chunk(raw)
-    embeddings = await _embed(chunks, openai_client)
+    embeddings = await _embed(chunks)
 
     return NormalisedArtifact(
         canonical_text=raw,
