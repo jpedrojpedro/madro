@@ -24,11 +24,22 @@ def _get_encoder() -> SentenceTransformer:
 
 
 @dataclass
-class NormalisedArtifact:
-    canonical_text: str
-    lexical_text: str       # normalised text — stored via to_tsvector at DB level
+class LexicalIndex:
+    normalization: str
+
+
+@dataclass
+class SemanticIndex:
     chunks: list[str]
     embeddings: list[list[float]]
+    model: str = _EMBEDDING_MODEL
+
+
+@dataclass
+class NormalisedArtifact:
+    canonical_text: str
+    lexical_index: LexicalIndex
+    semantic_index: SemanticIndex
     provenance: dict
 
 
@@ -59,16 +70,19 @@ async def _embed(chunks: list[str]) -> list[list[float]]:
 
 async def normalise(
     raw: str,
-    source_uri: str,
-    agent_name: str,
+    provenance: dict,
 ) -> NormalisedArtifact:
     chunks = _chunk(raw)
     embeddings = await _embed(chunks)
 
     return NormalisedArtifact(
         canonical_text=raw,
-        lexical_text=_normalise_lexical(raw),
-        chunks=chunks,
-        embeddings=embeddings,
-        provenance={"source": source_uri, "agent": agent_name},
+        lexical_index=LexicalIndex(
+            normalization=_normalise_lexical(raw),
+        ),
+        semantic_index=SemanticIndex(
+            chunks=chunks,
+            embeddings=embeddings,
+        ),
+        provenance=provenance,
     )

@@ -2,12 +2,13 @@ import json
 import logging
 from django.db import connection
 from madro.models import ExecutionStatus, JobExecution, JobStatus
+from madro.workflows.normalizer import NormalisedArtifact
 from madro.workflows.retrieval_agent import invoke
 
 logger = logging.getLogger(__name__)
 
 
-async def _persist_artifact(job_status: JobStatus, artifact, mean_vector: list[float]) -> None:
+async def _persist_artifact(job_status: JobStatus, artifact: NormalisedArtifact, mean_vector: list[float]) -> None:
     vector_literal = "[" + ",".join(map(str, mean_vector)) + "]"
     with connection.cursor() as cursor:
         cursor.execute(
@@ -20,7 +21,7 @@ async def _persist_artifact(job_status: JobStatus, artifact, mean_vector: list[f
                 str(job_status.id),
                 artifact.canonical_text,
                 json.dumps(artifact.provenance),
-                artifact.lexical_text,
+                artifact.lexical_index.normalization,
                 vector_literal,
             ],
         )
@@ -46,7 +47,7 @@ async def run() -> None:
         )
         try:
             artifact = await invoke(job)
-            mean_vector = _mean_embedding(artifact.embeddings)
+            mean_vector = _mean_embedding(artifact.semantic_index.embeddings)
             await _persist_artifact(job_status, artifact, mean_vector)
 
             job_status.status = ExecutionStatus.COMPLETED
