@@ -1,12 +1,10 @@
 from pydantic_ai import Agent
 from madro.data_wrappers import EnrichedPrompt
 from madro.workflows.system_prompts import InteractiveAgentSP
-from madro.config import load_config
-
-_cfg = load_config()
+from madro.config import get_model
 
 interactive_agent = Agent(
-    model=f"openai:{_cfg.model.name}",
+    model=get_model(),
     output_type=EnrichedPrompt,
     system_prompt=InteractiveAgentSP,
 )

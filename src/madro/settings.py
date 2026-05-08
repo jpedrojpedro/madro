@@ -28,7 +28,10 @@ ASGI_APPLICATION = "madro.asgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "OPTIONS": {"conninfo": os.environ.get("DATABASE_URL", "postgres://madro:madro@localhost:5432/madro")},
+        "NAME": None,
+        "OPTIONS": {
+            "conninfo": os.environ.get("DATABASE_URL", "postgresql://madro:madro@localhost:5432/madro").replace("postgres://", "postgresql://", 1)
+        },
     }
 }
 

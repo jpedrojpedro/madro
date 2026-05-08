@@ -1,6 +1,7 @@
+import json
 import uuid
 import yaml
-from django.db import models as db_models
+from django.db import models as db_models, connection
 from django.contrib.postgres.fields import ArrayField
 from madro.utils.fields import TsVectorField, EmbeddingField
 
@@ -14,6 +15,30 @@ class YamlExportMixin:
         ]
         data = {field: getattr(self, field) for field in fields}
         return yaml.dump(data, default_flow_style=False, allow_unicode=True)
+
+
+class GeneratedPKMixin:
+    """Mixin for models whose PK is a PostgreSQL GENERATED ALWAYS AS STORED column.
+
+    Subclasses must implement `_insert_generated()` which runs a raw INSERT
+    and assigns `self.<pk_field>` from the RETURNING clause.
+    """
+
+    def _insert_generated(self):
+        raise NotImplementedError
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            self._insert_generated()
+        else:
+            super().save(*args, **kwargs)
+
+    async def asave(self, *args, **kwargs):
+        if self._state.adding:
+            from asgiref.sync import sync_to_async
+            await sync_to_async(self._insert_generated)()
+        else:
+            await super().asave(*args, **kwargs)
 
 
 class MessageRole(db_models.TextChoices):
@@ -47,7 +72,7 @@ class Message(YamlExportMixin, db_models.Model):
         managed = False
 
 
-class Agent(YamlExportMixin, db_models.Model):
+class Agent(GeneratedPKMixin, YamlExportMixin, db_models.Model):
     id = db_models.UUIDField(primary_key=True, editable=False)
     name = db_models.TextField()
     description = db_models.TextField()
@@ -55,15 +80,42 @@ class Agent(YamlExportMixin, db_models.Model):
     mcp_schema = db_models.JSONField()
     candidate_topics = ArrayField(base_field=db_models.TextField(), null=True, blank=True)
 
+    def _insert_generated(self):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO agents_topics.agent (name, description, uri, mcp_schema, candidate_topics)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                [self.name, self.description, self.uri,
+                 json.dumps(self.mcp_schema), self.candidate_topics],
+            )
+            self.id = cursor.fetchone()[0]
+        self._state.adding = False
+
     class Meta:
         db_table = '"agents_topics"."agent"'
         managed = False
 
 
-class Topic(YamlExportMixin, db_models.Model):
+class Topic(GeneratedPKMixin, YamlExportMixin, db_models.Model):
     id = db_models.UUIDField(primary_key=True, editable=False)
     name = db_models.TextField()
     description = db_models.TextField()
+
+    def _insert_generated(self):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO agents_topics.topic (name, description)
+                VALUES (%s, %s)
+                RETURNING id
+                """,
+                [self.name, self.description],
+            )
+            self.id = cursor.fetchone()[0]
+        self._state.adding = False
 
     class Meta:
         db_table = '"agents_topics"."topic"'
@@ -71,7 +123,7 @@ class Topic(YamlExportMixin, db_models.Model):
 
 
 class AgentTopic(YamlExportMixin, db_models.Model):
-    agent = db_models.ForeignKey(Agent, on_delete=db_models.CASCADE)
+    agent = db_models.ForeignKey(Agent, on_delete=db_models.CASCADE, primary_key=True)
     topic = db_models.ForeignKey(Topic, on_delete=db_models.CASCADE)
     assigned_at = db_models.DateTimeField(auto_now_add=True)
     is_active = db_models.BooleanField(default=True)
@@ -79,7 +131,6 @@ class AgentTopic(YamlExportMixin, db_models.Model):
     class Meta:
         db_table = '"agents_topics"."agent_topic"'
         managed = False
-        unique_together = [("agent", "topic")]
 
 
 class ExecutionStatus(db_models.TextChoices):
@@ -89,23 +140,35 @@ class ExecutionStatus(db_models.TextChoices):
     FAILED = "failed"
 
 
-class JobExecution(YamlExportMixin, db_models.Model):
-    job_id = db_models.UUIDField(editable=False)
+class JobExecution(GeneratedPKMixin, YamlExportMixin, db_models.Model):
+    job_id = db_models.UUIDField(primary_key=True, editable=False)
     thread = db_models.ForeignKey(Thread, on_delete=db_models.DO_NOTHING)
     demand = db_models.ForeignKey(Message, on_delete=db_models.DO_NOTHING)
     topic = db_models.ForeignKey(Topic, on_delete=db_models.DO_NOTHING)
     agent = db_models.ForeignKey(Agent, on_delete=db_models.DO_NOTHING)
     created_at = db_models.DateTimeField(auto_now_add=True)
 
+    def _insert_generated(self):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO broker.job_execution (thread_id, demand_id, topic_id, agent_id)
+                VALUES (%s, %s, %s, %s)
+                RETURNING job_id
+                """,
+                [self.thread_id, self.demand_id, self.topic_id, self.agent_id],
+            )
+            self.job_id = cursor.fetchone()[0]
+        self._state.adding = False
+
     class Meta:
         db_table = '"broker"."job_execution"'
         managed = False
-        unique_together = [("job_id", "agent")]
 
 
 class JobStatus(YamlExportMixin, db_models.Model):
     id = db_models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    job_id = db_models.UUIDField()
+    job = db_models.ForeignKey(JobExecution, on_delete=db_models.DO_NOTHING, db_column="job_id", to_field="job_id")
     agent = db_models.ForeignKey(Agent, on_delete=db_models.DO_NOTHING, db_column="agent_id")
     status = db_models.TextField(choices=ExecutionStatus.choices)
     finished_at = db_models.DateTimeField(auto_now_add=True)

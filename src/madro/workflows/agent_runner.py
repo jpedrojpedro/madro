@@ -36,12 +36,12 @@ async def run() -> None:
     # fetch jobs with no status entry yet
     pending_jobs = [
         job async for job in JobExecution.objects.select_related("agent", "demand")
-        if not await JobStatus.objects.filter(job_id=job.job_id, agent=job.agent).aexists()
+        if not await JobStatus.objects.filter(job=job, agent=job.agent).aexists()
     ]
 
     for job in pending_jobs:
         job_status = await JobStatus.objects.acreate(
-            job_id=job.job_id,
+            job=job,
             agent=job.agent,
             status=ExecutionStatus.PROCESSING,
         )

@@ -2,13 +2,11 @@ from pydantic_ai import Agent
 from madro.models import Agent as AgentModel, Topic, AgentTopic
 from madro.data_wrappers import TopicAssignment
 from madro.workflows.system_prompts import TopicCategorizationSP
-from madro.config import load_config
+from madro.config import get_model
 
-
-_cfg = load_config()
 
 categorization_agent = Agent(
-    model=f"openai:{_cfg.model.name}",
+    model=get_model(),
     output_type=TopicAssignment,
     system_prompt=TopicCategorizationSP,
 )
@@ -20,12 +18,6 @@ def list_topics() -> list[dict]:
 
 
 async def categorize_and_assign(agent: AgentModel) -> list[Topic]:
-    # prompt = (
-    #     f"Agent name: {agent.name}\n"
-    #     f"Description: {agent.description}\n"
-    #     f"MCP schema: {agent.mcp_schema}\n"
-    #     f"Candidate topics: {agent.candidate_topics or []}"
-    # )
     prompt = agent.to_yaml()
     result = await categorization_agent.run(prompt)
     assignment: TopicAssignment = result.output
@@ -33,15 +25,16 @@ async def categorize_and_assign(agent: AgentModel) -> list[Topic]:
     topics: list[Topic] = []
 
     if assignment.new_topic:
-        topic = Topic.objects.create(
+        topic = Topic(
             name=assignment.new_topic.name,
             description=assignment.new_topic.description,
         )
+        await topic.asave()
         topics.append(topic)
     else:
-        topics = list(Topic.objects.filter(id__in=assignment.topic_ids))
+        topics = [t async for t in Topic.objects.filter(id__in=assignment.topic_ids)]
 
-    AgentTopic.objects.bulk_create(
+    await AgentTopic.objects.abulk_create(
         [AgentTopic(agent=agent, topic=t) for t in topics],
         ignore_conflicts=True,
     )

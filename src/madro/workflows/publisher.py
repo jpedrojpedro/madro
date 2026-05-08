@@ -22,14 +22,13 @@ async def publish(
             continue
 
         async for agent_topic in AgentTopic.objects.filter(topic=topic, is_active=True).select_related("agent"):
-            jobs.append(
-                JobExecution(
-                    thread=thread,
-                    demand=demand_message,
-                    topic=topic,
-                    agent=agent_topic.agent,
-                )
+            job = JobExecution(
+                thread=thread,
+                demand=demand_message,
+                topic=topic,
+                agent=agent_topic.agent,
             )
+            await job.asave()
+            jobs.append(job)
 
-    await JobExecution.objects.abulk_create(jobs)
     return jobs
