@@ -26,14 +26,17 @@ async def invoke(job: JobExecution) -> NormalisedArtifact:
 
     if agent.uri.startswith("local://"):
         local_agent = _load_local_agent(agent.uri)
-        response_data = await local_agent.run(**payload)
+        raw = await local_agent.run(**payload)
+        provenance = {
+            "source": agent.uri,
+            "agent": agent.name,
+        }
     else:
         async with httpx.AsyncClient(timeout=30) as client:
             response = await client.post(agent.uri, json=payload)
             response.raise_for_status()
             response_data = response.json()
+        raw = response_data["result"]
+        provenance = response_data["provenance"]
 
-    return await normalise(
-        raw=response_data["result"],
-        provenance=response_data["provenance"],
-    )
+    return await normalise(raw=raw, provenance=provenance)
