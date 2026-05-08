@@ -1,5 +1,6 @@
 import json
 import logging
+from asgiref.sync import sync_to_async
 from django.db import connection
 from madro.models import ExecutionStatus, JobExecution, JobStatus
 from madro.workflows.normalizer import NormalisedArtifact
@@ -10,21 +11,25 @@ logger = logging.getLogger(__name__)
 
 async def _persist_artifact(job_status: JobStatus, artifact: NormalisedArtifact, mean_vector: list[float]) -> None:
     vector_literal = "[" + ",".join(map(str, mean_vector)) + "]"
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            INSERT INTO broker.job_artifact
-                (job_status_id, canonical_text, provenance_details, lexical_vector, semantic_embedding)
-            VALUES (%s, %s, %s::jsonb, to_tsvector('english', %s), %s::vector)
-            """,
-            [
-                str(job_status.id),
-                artifact.canonical_text,
-                json.dumps(artifact.provenance),
-                artifact.lexical_index.normalization,
-                vector_literal,
-            ],
-        )
+
+    def _insert():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO broker.job_artifact
+                    (job_status_id, canonical_text, provenance_details, lexical_vector, semantic_embedding)
+                VALUES (%s, %s, %s::jsonb, to_tsvector('english', %s), %s::vector)
+                """,
+                [
+                    str(job_status.id),
+                    artifact.canonical_text,
+                    json.dumps(artifact.provenance),
+                    artifact.lexical_index.normalization,
+                    vector_literal,
+                ],
+            )
+
+    await sync_to_async(_insert)()
 
 
 def _mean_embedding(embeddings: list[list[float]]) -> list[float]:

@@ -3,6 +3,7 @@ import unicodedata
 import asyncio
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 
 from sentence_transformers import SentenceTransformer
 
@@ -11,7 +12,9 @@ _STOPWORDS = frozenset(
 )
 _CHUNK_SIZE = 512
 _CHUNK_OVERLAP = 64
-_EMBEDDING_MODEL = "nomic-ai/modernbert-embed-base"
+_EMBEDDING_MODEL = "nomic-ai/nomic-embed-text-v1.5"
+_EMBEDDING_DIMS = 768
+_CACHE_DIR = Path.home() / ".cache" / "madro" / "models"
 
 _encoder: SentenceTransformer | None = None
 
@@ -19,7 +22,11 @@ _encoder: SentenceTransformer | None = None
 def _get_encoder() -> SentenceTransformer:
     global _encoder
     if _encoder is None:
-        _encoder = SentenceTransformer(_EMBEDDING_MODEL)
+        _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        _encoder = SentenceTransformer(
+            _EMBEDDING_MODEL,
+            cache_folder=str(_CACHE_DIR),
+        )
     return _encoder
 
 

@@ -112,7 +112,7 @@ create table broker.job_artifact (
     confidence_score numeric(5,4) check (confidence_score between 0 and 1),
     provenance_details jsonb,
     lexical_vector tsvector,
-    semantic_embedding vector(1536),
+    semantic_embedding vector(768),
     created_at timestamptz default (now() at time zone 'utc')
 );
 

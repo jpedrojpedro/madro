@@ -184,7 +184,7 @@ class JobArtifact(YamlExportMixin, db_models.Model):
     confidence_score = db_models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
     provenance_details = db_models.JSONField(null=True, blank=True)
     lexical_vector = TsVectorField(null=True, blank=True)
-    semantic_embedding = EmbeddingField(dimensions=1536, null=True, blank=True)
+    semantic_embedding = EmbeddingField(dimensions=768, null=True, blank=True)
     created_at = db_models.DateTimeField(auto_now_add=True)
 
     class Meta:
