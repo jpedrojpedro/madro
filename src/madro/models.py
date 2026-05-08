@@ -20,23 +20,34 @@ class YamlExportMixin:
 class GeneratedPKMixin:
     """Mixin for models whose PK is a PostgreSQL GENERATED ALWAYS AS STORED column.
 
-    Subclasses must implement `_insert_generated()` which runs a raw INSERT
-    and assigns `self.<pk_field>` from the RETURNING clause.
+    Subclasses must implement `_insert_generated_sql()` returning (sql, params)
+    and `_set_pk(row)` to assign the returned PK value.
     """
 
-    def _insert_generated(self):
+    def _insert_generated_sql(self) -> tuple[str, list]:
+        raise NotImplementedError
+
+    def _set_pk(self, row: tuple) -> None:
         raise NotImplementedError
 
     def save(self, *args, **kwargs):
         if self._state.adding:
-            self._insert_generated()
+            sql, params = self._insert_generated_sql()
+            with connection.cursor() as cursor:
+                cursor.execute(sql, params)
+                self._set_pk(cursor.fetchone())
+            self._state.adding = False
         else:
             super().save(*args, **kwargs)
 
     async def asave(self, *args, **kwargs):
         if self._state.adding:
-            from asgiref.sync import sync_to_async
-            await sync_to_async(self._insert_generated)()
+            from madro.db import async_cursor
+            sql, params = self._insert_generated_sql()
+            async with async_cursor() as cur:
+                await cur.execute(sql, params)
+                self._set_pk(await cur.fetchone())
+            self._state.adding = False
         else:
             await super().asave(*args, **kwargs)
 
@@ -80,19 +91,13 @@ class Agent(GeneratedPKMixin, YamlExportMixin, db_models.Model):
     mcp_schema = db_models.JSONField()
     candidate_topics = ArrayField(base_field=db_models.TextField(), null=True, blank=True)
 
-    def _insert_generated(self):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO agents_topics.agent (name, description, uri, mcp_schema, candidate_topics)
-                VALUES (%s, %s, %s, %s, %s)
-                RETURNING id
-                """,
-                [self.name, self.description, self.uri,
-                 json.dumps(self.mcp_schema), self.candidate_topics],
-            )
-            self.id = cursor.fetchone()[0]
-        self._state.adding = False
+    def _insert_generated_sql(self):
+        return (
+            "INSERT INTO agents_topics.agent (name, description, uri, mcp_schema, candidate_topics) VALUES (%s, %s, %s, %s, %s) RETURNING id",
+            [self.name, self.description, self.uri, json.dumps(self.mcp_schema), self.candidate_topics],
+        )
+
+    def _set_pk(self, row): self.id = row[0]
 
     class Meta:
         db_table = '"agents_topics"."agent"'
@@ -104,18 +109,13 @@ class Topic(GeneratedPKMixin, YamlExportMixin, db_models.Model):
     name = db_models.TextField()
     description = db_models.TextField()
 
-    def _insert_generated(self):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO agents_topics.topic (name, description)
-                VALUES (%s, %s)
-                RETURNING id
-                """,
-                [self.name, self.description],
-            )
-            self.id = cursor.fetchone()[0]
-        self._state.adding = False
+    def _insert_generated_sql(self):
+        return (
+            "INSERT INTO agents_topics.topic (name, description) VALUES (%s, %s) RETURNING id",
+            [self.name, self.description],
+        )
+
+    def _set_pk(self, row): self.id = row[0]
 
     class Meta:
         db_table = '"agents_topics"."topic"'
@@ -148,18 +148,13 @@ class JobExecution(GeneratedPKMixin, YamlExportMixin, db_models.Model):
     agent = db_models.ForeignKey(Agent, on_delete=db_models.DO_NOTHING)
     created_at = db_models.DateTimeField(auto_now_add=True)
 
-    def _insert_generated(self):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO broker.job_execution (thread_id, demand_id, topic_id, agent_id)
-                VALUES (%s, %s, %s, %s)
-                RETURNING job_id
-                """,
-                [self.thread_id, self.demand_id, self.topic_id, self.agent_id],
-            )
-            self.job_id = cursor.fetchone()[0]
-        self._state.adding = False
+    def _insert_generated_sql(self):
+        return (
+            "INSERT INTO broker.job_execution (thread_id, demand_id, topic_id, agent_id) VALUES (%s, %s, %s, %s) RETURNING job_id",
+            [self.thread_id, self.demand_id, self.topic_id, self.agent_id],
+        )
+
+    def _set_pk(self, row): self.job_id = row[0]
 
     class Meta:
         db_table = '"broker"."job_execution"'

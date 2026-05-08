@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
@@ -25,13 +26,19 @@ ROOT_URLCONF = "madro.urls"
 WSGI_APPLICATION = "madro.wsgi.application"
 ASGI_APPLICATION = "madro.asgi.application"
 
+_db_url = urlparse(
+    os.environ.get("DATABASE_URL", "postgresql://madro:madro@localhost:5432/madro")
+    .replace("postgres://", "postgresql://", 1)
+)
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": None,
-        "OPTIONS": {
-            "conninfo": os.environ.get("DATABASE_URL", "postgresql://madro:madro@localhost:5432/madro").replace("postgres://", "postgresql://", 1)
-        },
+        "NAME": _db_url.path.lstrip("/"),
+        "USER": _db_url.username,
+        "PASSWORD": _db_url.password,
+        "HOST": _db_url.hostname,
+        "PORT": _db_url.port or 5432,
     }
 }
 
