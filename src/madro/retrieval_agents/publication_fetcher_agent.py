@@ -35,7 +35,7 @@ class PublicationFetcherAgent(RetrievalAgent):
             pr.id as publication_id,
             coalesce(pc.profile_id, pr.profile_id) as profile_id,
             coalesce(pf.full_name, pf2.full_name) as full_name,
-            pr.desc_,
+            pr.desc_ as publication_caption,
             pr.rnk
         FROM publication_results pr
         LEFT JOIN public.publication_collab pc ON pr.id = pc.publication_id

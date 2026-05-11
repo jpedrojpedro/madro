@@ -24,6 +24,8 @@ from madro.workflows.topic_categorization_agent import categorize_and_assign
 from madro.workflows.thread_workflow import run_thread
 from madro.workflows.agent_runner import _persist_artifact
 from madro.workflows.retrieval_agent import invoke
+from madro.workflows.aggregation.fusion import fuse
+from madro.workflows.aggregation.response_synthesis import synthesize
 
 
 # ---------------------------------------------------------------------------
@@ -173,6 +175,28 @@ async def main() -> None:
             job_status.status = ExecutionStatus.FAILED
             await job_status.asave(update_fields=["status"])
             print(f"  FAILED: {exc}")
+
+    # ------------------------------------------------------------------
+    # Step 4: Fusion
+    # ------------------------------------------------------------------
+    _print_section("Step 4 · Fusion ranking")
+
+    ranked = await fuse(str(thread.id), TASK_PROMPT)
+
+    print(f"Entities ranked: {len(ranked)}\n")
+    for i, entity in enumerate(ranked, 1):
+        print(f"  #{i} entity_id={entity.entity_id}")
+        print(f"     S_text={entity.s_text:.4f}  S_image={entity.s_image:.4f}  S_fusion={entity.s_fusion:.4f}")
+        preview = {k: v for k, v in list(entity.entity_data.items())[:4]}
+        print(f"     data={json.dumps(preview, ensure_ascii=False)}")
+
+    # ------------------------------------------------------------------
+    # Step 5: Response Synthesis
+    # ------------------------------------------------------------------
+    _print_section("Step 5 · Response Synthesis")
+
+    response = await synthesize(str(thread.id), TASK_PROMPT)
+    print(response)
 
     _print_section("Done")
 

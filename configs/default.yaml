@@ -3,6 +3,17 @@ model:
   temperature: 0.2
   max_tokens: 4096
 
+fusion:
+  text:
+    alpha: 0.7   # lexical weight
+    beta: 0.3    # semantic weight
+  image:
+    gamma: 0.5   # lexical weight
+    delta: 0.5   # semantic weight
+  modality_weights:
+    w_t: 0.7     # text modality
+    w_i: 0.3     # image modality
+
 debug:
   enabled: false
   log_level: INFO

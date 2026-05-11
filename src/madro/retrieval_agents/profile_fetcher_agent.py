@@ -21,9 +21,9 @@ class ProfileFetcherAgent(RetrievalAgent):
                 )
           ) AS query
         )
-        SELECT id,
-               full_name,
-               regexp_replace(biography, '[\r\n]+', ' ', 'g') as bio,
+        SELECT id as profile_id,
+               full_name as profile_full_name,
+               regexp_replace(biography, '[\r\n]+', ' ', 'g') as profile_bio,
                ts_rank(biography_lexemes, query, 32) as rnk
         FROM public.profile, search_setup
         WHERE biography_lexemes @@ query
