@@ -8,28 +8,34 @@ from madro.workflows.retrieval_agent import invoke
 logger = logging.getLogger(__name__)
 
 
-async def _persist_artifact(job_status: JobStatus, artifact: NormalisedArtifact, mean_vector: list[float]) -> None:
-    vector_literal = "[" + ",".join(map(str, mean_vector)) + "]"
+async def _persist_artifact(job_status: JobStatus, artifact: NormalisedArtifact) -> None:
     async with async_cursor() as cur:
         await cur.execute(
             """
             INSERT INTO broker.job_artifact
-                (job_status_id, canonical_text, provenance_details, lexical_vector, semantic_embedding)
-            VALUES (%s, %s, %s::jsonb, to_tsvector('english', %s), %s::vector)
+                (job_status_id, canonical_text, provenance_details, lexical_vector)
+            VALUES (%s, %s, %s::jsonb, to_tsvector('english', %s))
             """,
             [
                 str(job_status.id),
                 artifact.canonical_text,
                 json.dumps(artifact.provenance),
                 artifact.lexical_index.normalization,
-                vector_literal,
             ],
         )
 
-
-def _mean_embedding(embeddings: list[list[float]]) -> list[float]:
-    n = len(embeddings)
-    return [sum(col) / n for col in zip(*embeddings)]
+        chunks = artifact.semantic_index.chunks
+        embeddings = artifact.semantic_index.embeddings
+        for idx, (chunk, emb) in enumerate(zip(chunks, embeddings)):
+            vector_literal = "[" + ",".join(map(str, emb)) + "]"
+            await cur.execute(
+                """
+                INSERT INTO broker.job_artifact_document
+                    (job_artifact_id, chunk_index, chunk_text, embedding)
+                VALUES (%s, %s, %s, %s::vector)
+                """,
+                [str(job_status.id), idx, chunk, vector_literal],
+            )
 
 
 async def run() -> None:
@@ -47,8 +53,7 @@ async def run() -> None:
         )
         try:
             artifact = await invoke(job)
-            mean_vector = _mean_embedding(artifact.semantic_index.embeddings)
-            await _persist_artifact(job_status, artifact, mean_vector)
+            await _persist_artifact(job_status, artifact)
 
             job_status.status = ExecutionStatus.COMPLETED
             await job_status.asave(update_fields=["status"])

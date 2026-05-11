@@ -179,9 +179,24 @@ class JobArtifact(YamlExportMixin, db_models.Model):
     confidence_score = db_models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
     provenance_details = db_models.JSONField(null=True, blank=True)
     lexical_vector = TsVectorField(null=True, blank=True)
-    semantic_embedding = EmbeddingField(dimensions=768, null=True, blank=True)
     created_at = db_models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = '"broker"."job_artifact"'
         managed = False
+
+
+class JobArtifactDocument(db_models.Model):
+    id = db_models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    job_artifact = db_models.ForeignKey(JobArtifact, on_delete=db_models.CASCADE, related_name="documents", db_column="job_artifact_id")
+    chunk_index = db_models.IntegerField()
+    chunk_text = db_models.TextField()
+    embedding = EmbeddingField(dimensions=768)
+    created_at = db_models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = '"broker"."job_artifact_document"'
+        managed = False
+        constraints = [
+            db_models.UniqueConstraint(fields=["job_artifact", "chunk_index"], name="uq_artifact_chunk"),
+        ]

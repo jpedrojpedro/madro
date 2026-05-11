@@ -22,8 +22,9 @@ import json
 from madro.models import Agent, AgentTopic, ExecutionStatus, JobExecution, JobStatus
 from madro.workflows.topic_categorization_agent import categorize_and_assign
 from madro.workflows.thread_workflow import run_thread
-from madro.workflows.agent_runner import _mean_embedding, _persist_artifact
+from madro.workflows.agent_runner import _persist_artifact
 from madro.workflows.retrieval_agent import invoke
+
 
 # ---------------------------------------------------------------------------
 # Task
@@ -157,9 +158,7 @@ async def main() -> None:
 
         try:
             artifact = await invoke(job)
-
-            mean_vector = _mean_embedding(artifact.semantic_index.embeddings)
-            await _persist_artifact(job_status, artifact, mean_vector)
+            await _persist_artifact(job_status, artifact)
 
             job_status.status = ExecutionStatus.COMPLETED
             await job_status.asave(update_fields=["status"])

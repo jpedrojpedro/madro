@@ -1,3 +1,4 @@
+import json
 import re
 import unicodedata
 import asyncio
@@ -60,6 +61,12 @@ def _normalise_lexical(text: str) -> str:
 
 
 def _chunk(text: str) -> list[str]:
+    try:
+        data = json.loads(text)
+        if isinstance(data, list):
+            return [json.dumps(item, ensure_ascii=False) for item in data] or [text]
+    except (json.JSONDecodeError, TypeError):
+        pass
     words = text.split()
     chunks, i = [], 0
     while i < len(words):

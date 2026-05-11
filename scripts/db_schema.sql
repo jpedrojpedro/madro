@@ -112,11 +112,20 @@ create table broker.job_artifact (
     confidence_score numeric(5,4) check (confidence_score between 0 and 1),
     provenance_details jsonb,
     lexical_vector tsvector,
-    semantic_embedding vector(768),
     created_at timestamptz default (now() at time zone 'utc')
 );
 
-create index idx_artifact_semantic
-    on broker.job_artifact using hnsw (semantic_embedding vector_cosine_ops);
+create table broker.job_artifact_document (
+    id uuid primary key default gen_random_uuid(),
+    job_artifact_id uuid not null references broker.job_artifact(job_status_id) on delete cascade,
+    chunk_index integer not null,
+    chunk_text text not null,
+    embedding vector(768) not null,
+    created_at timestamptz default (now() at time zone 'utc'),
+    unique (job_artifact_id, chunk_index)
+);
+
+create index idx_artifact_document_embedding
+    on broker.job_artifact_document using hnsw (embedding vector_cosine_ops);
 create index idx_artifact_confidence
     on broker.job_artifact (confidence_score desc);
