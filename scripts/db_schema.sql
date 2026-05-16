@@ -21,6 +21,8 @@ returns uuid AS $$
     select '2234acab-b9c4-4e3a-8d5c-e435f17f4f7c'::uuid;
 $$ language sql immutable;
 
+create type agents_topics.agent_modality as enum ('text', 'image');
+
 create table agents_topics.agent(
     id uuid primary key generated always as (
         public.custom_uuid_generate_v5(
@@ -32,7 +34,8 @@ create table agents_topics.agent(
     description text not null,
     uri text not null,
     mcp_schema jsonb not null,
-    candidate_topics text[] null
+    candidate_topics text[] null,
+    modality agents_topics.agent_modality not null default 'text'
 );
 
 create table agents_topics.topic(

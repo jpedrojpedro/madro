@@ -35,7 +35,9 @@ class GeneratedPKMixin:
             sql, params = self._insert_generated_sql()
             with connection.cursor() as cursor:
                 cursor.execute(sql, params)
-                self._set_pk(cursor.fetchone())
+                row = cursor.fetchone()
+                if row:
+                    self._set_pk(row)
             self._state.adding = False
         else:
             super().save(*args, **kwargs)
@@ -46,7 +48,9 @@ class GeneratedPKMixin:
             sql, params = self._insert_generated_sql()
             async with async_cursor() as cur:
                 await cur.execute(sql, params)
-                self._set_pk(await cur.fetchone())
+                row = await cur.fetchone()
+                if row:
+                    self._set_pk(row)
             self._state.adding = False
         else:
             await super().asave(*args, **kwargs)
@@ -83,6 +87,11 @@ class Message(YamlExportMixin, db_models.Model):
         managed = False
 
 
+class AgentModality(db_models.TextChoices):
+    TEXT = "text"
+    IMAGE = "image"
+
+
 class Agent(GeneratedPKMixin, YamlExportMixin, db_models.Model):
     id = db_models.UUIDField(primary_key=True, editable=False)
     name = db_models.TextField()
@@ -90,11 +99,12 @@ class Agent(GeneratedPKMixin, YamlExportMixin, db_models.Model):
     uri = db_models.TextField()
     mcp_schema = db_models.JSONField()
     candidate_topics = ArrayField(base_field=db_models.TextField(), null=True, blank=True)
+    modality = db_models.TextField(choices=AgentModality.choices, default=AgentModality.TEXT)
 
     def _insert_generated_sql(self):
         return (
-            "INSERT INTO agents_topics.agent (name, description, uri, mcp_schema, candidate_topics) VALUES (%s, %s, %s, %s, %s) RETURNING id",
-            [self.name, self.description, self.uri, json.dumps(self.mcp_schema), self.candidate_topics],
+            "INSERT INTO agents_topics.agent (name, description, uri, mcp_schema, candidate_topics, modality) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+            [self.name, self.description, self.uri, json.dumps(self.mcp_schema), self.candidate_topics, self.modality],
         )
 
     def _set_pk(self, row): self.id = row[0]
@@ -150,7 +160,7 @@ class JobExecution(GeneratedPKMixin, YamlExportMixin, db_models.Model):
 
     def _insert_generated_sql(self):
         return (
-            "INSERT INTO broker.job_execution (thread_id, demand_id, topic_id, agent_id) VALUES (%s, %s, %s, %s) RETURNING job_id",
+            "INSERT INTO broker.job_execution (thread_id, demand_id, topic_id, agent_id) VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING RETURNING job_id",
             [self.thread_id, self.demand_id, self.topic_id, self.agent_id],
         )
 

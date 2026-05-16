@@ -105,6 +105,7 @@ SEED_AGENTS = [
             "required": [],
         },
         "candidate_topics": ["image_retrieval", "media_retrieval"],
+        "modality": "image",
     },
 ]
 
@@ -122,6 +123,7 @@ async def _seed_agent(spec: dict) -> Agent:
             "uri": spec["uri"],
             "mcp_schema": spec["mcp_schema"],
             "candidate_topics": spec["candidate_topics"],
+            "modality": spec.get("modality", "text"),
         },
     )
     if created:

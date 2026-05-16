@@ -46,7 +46,9 @@ async def aggregate_text(thread_id: str, demand: str) -> list[ScoredEntity]:
             FROM broker.job_artifact ja
             JOIN broker.job_status js ON js.id = ja.job_status_id
             JOIN broker.job_execution je ON je.job_id = js.job_id AND je.agent_id = js.agent_id
+            JOIN agents_topics.agent a ON a.id = je.agent_id
             WHERE je.thread_id = %s
+              AND a.modality = 'text'
               AND js.status = 'completed'
             """,
             [demand, thread_id],
@@ -62,7 +64,9 @@ async def aggregate_text(thread_id: str, demand: str) -> list[ScoredEntity]:
             JOIN broker.job_artifact ja ON ja.job_status_id = jad.job_artifact_id
             JOIN broker.job_status js ON js.id = ja.job_status_id
             JOIN broker.job_execution je ON je.job_id = js.job_id AND je.agent_id = js.agent_id
+            JOIN agents_topics.agent a ON a.id = je.agent_id
             WHERE je.thread_id = %s
+              AND a.modality = 'text'
             """,
             [vector_literal, thread_id],
         )
