@@ -70,6 +70,24 @@ SEED_AGENTS = [
         },
         "candidate_topics": ["publication_retrieval", "menu_retrieval"],
     },
+    {
+        "name": "SemanticOpinionFetcherAgent",
+        "description": (
+            "Fetches comments made by profiles over publications, "
+            "including likes and publication date. Supports optional date range filtering."
+        ),
+        "uri": "local://madro/retrieval_agents/semantic_opinion_fetcher",
+        "mcp_schema": {
+            "type": "object",
+            "properties": {
+                "sample": {"type": "integer", "description": "Max number of comments to fetch", "default": 10},
+                "date_from": {"type": "string", "description": "Filter comments published on or after this date (ISO 8601)"},
+                "date_to": {"type": "string", "description": "Filter comments published on or before this date (ISO 8601)"},
+            },
+            "required": [],
+        },
+        "candidate_topics": ["opinion_retrieval", "comment_retrieval"],
+    },
 ]
 
 def _print_section(title: str) -> None:
