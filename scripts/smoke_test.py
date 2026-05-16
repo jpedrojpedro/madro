@@ -88,6 +88,24 @@ SEED_AGENTS = [
         },
         "candidate_topics": ["opinion_retrieval", "comment_retrieval"],
     },
+    {
+        "name": "ImageFetcherAgent",
+        "description": (
+            "Fetches images and media files associated with Instagram publications, "
+            "ordered by publication date and media position. Supports optional date range filtering."
+        ),
+        "uri": "local://madro/retrieval_agents/image_fetcher_agent",
+        "mcp_schema": {
+            "type": "object",
+            "properties": {
+                "sample": {"type": "integer", "description": "Max number of files to fetch", "default": 10},
+                "date_from": {"type": "string", "description": "Filter files from publications on or after this date (ISO 8601)"},
+                "date_to": {"type": "string", "description": "Filter files from publications on or before this date (ISO 8601)"},
+            },
+            "required": [],
+        },
+        "candidate_topics": ["image_retrieval", "media_retrieval"],
+    },
 ]
 
 def _print_section(title: str) -> None:
