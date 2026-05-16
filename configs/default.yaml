@@ -1,18 +1,18 @@
 model:
   name: gpt-4o
-  temperature: 0.2
+  temperature: 0
   max_tokens: 4096
 
 fusion:
   text:
-    alpha: 0.7   # lexical weight
-    beta: 0.3    # semantic weight
+    alpha: 0.3   # lexical weight
+    beta: 0.7    # semantic weight
   image:
     gamma: 0.5   # lexical weight
     delta: 0.5   # semantic weight
   modality_weights:
-    w_t: 0.7     # text modality
-    w_i: 0.3     # image modality
+    w_t: 1       # text modality
+    w_i: 0       # image modality
 
 debug:
   enabled: false
