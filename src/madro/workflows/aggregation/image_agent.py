@@ -35,8 +35,11 @@ def _cosine(a: list[float], b: list[float]) -> float:
     return float(np.dot(va, vb) / denom) if denom else 0.0
 
 
+_IMAGE_MIME = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp", "gif": "image/gif", "mp4": "image/jpeg"}
+
+
 async def _describe_image(client: AsyncAzureOpenAI, model: str, b64: str, extension: str) -> str:
-    mime = "image/jpeg" if extension == "jpg" else "video/mp4"
+    mime = _IMAGE_MIME.get(extension, "image/jpeg")
     response = await client.chat.completions.create(
         model=model,
         messages=[{

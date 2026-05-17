@@ -31,7 +31,10 @@ from madro.workflows.aggregation.response_synthesis import synthesize
 # ---------------------------------------------------------------------------
 # Task
 # ---------------------------------------------------------------------------
-TASK_PROMPT = "Can you show me Italian restaurants and their respective location?"
+TASK_PROMPTS = [
+    "Can you show me Italian restaurants and their respective location?",
+    "Show me recent photos and menus from restaurants nearby, including any visible dishes or specials.",
+]
 
 # ---------------------------------------------------------------------------
 # Seed agents
@@ -150,15 +153,22 @@ async def main() -> None:
     for spec in SEED_AGENTS:
         await _seed_agent(spec)
 
+    for task_prompt in TASK_PROMPTS:
+        await _run_task(task_prompt)
+
+    _print_section("Done")
+
+
+async def _run_task(task_prompt: str) -> None:
     # ------------------------------------------------------------------
     # Step 1: run_thread
     # ------------------------------------------------------------------
-    _print_section("Step 1 · run_thread")
-    print(f"Prompt: {TASK_PROMPT!r}\n")
+    _print_section(f"Step 1 · run_thread")
+    print(f"Prompt: {task_prompt!r}\n")
 
     thread, user_message, decomposed = await run_thread(
         thread_id=None,
-        task_prompt=TASK_PROMPT,
+        task_prompt=task_prompt,
     )
 
     print(f"Thread ID   : {thread.id}")
@@ -219,7 +229,7 @@ async def main() -> None:
     # ------------------------------------------------------------------
     _print_section("Step 4 · Fusion ranking")
 
-    ranked = await fuse(str(thread.id), TASK_PROMPT)
+    ranked = await fuse(str(thread.id), task_prompt)
 
     print(f"Entities ranked: {len(ranked)}\n")
     for i, entity in enumerate(ranked, 1):
@@ -233,10 +243,8 @@ async def main() -> None:
     # ------------------------------------------------------------------
     _print_section("Step 5 · Response Synthesis")
 
-    response = await synthesize(str(thread.id), TASK_PROMPT)
+    response = await synthesize(str(thread.id), task_prompt)
     print(response)
-
-    _print_section("Done")
 
 
 if __name__ == "__main__":

@@ -17,16 +17,6 @@ def _load_local_agent(uri: str):
     raise ValueError(f"No RetrievalAgent subclass found in {uri}")
 
 
-def _strip_binary_fields(raw: str) -> str:
-    """Remove bytea fields from JSON rows before normalization to avoid corrupting embeddings."""
-    try:
-        records = json.loads(raw)
-        if isinstance(records, list):
-            return json.dumps([{k: v for k, v in r.items() if not isinstance(v, (bytes, memoryview))} for r in records])
-    except (json.JSONDecodeError, TypeError):
-        pass
-    return raw
-
 
 async def invoke(job: JobExecution) -> NormalisedArtifact:
     agent: Agent = job.agent
@@ -50,8 +40,5 @@ async def invoke(job: JobExecution) -> NormalisedArtifact:
             response_data = response.json()
         raw = response_data["result"]
         provenance = response_data["provenance"]
-
-    if agent.modality == "image":
-        raw = _strip_binary_fields(raw)
 
     return await normalise(raw=raw, provenance=provenance)

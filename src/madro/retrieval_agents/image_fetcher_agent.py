@@ -1,3 +1,4 @@
+import base64
 import json
 
 from madro.retrieval_agents.base import RetrievalAgent
@@ -38,4 +39,9 @@ class ImageFetcherAgent(RetrievalAgent):
             async with conn.cursor() as cur:
                 await cur.execute(query, params)
                 rows = await cur.fetchall()
-        return json.dumps(rows)
+
+        for row in rows:
+            if isinstance(row.get("data"), (bytes, memoryview)):
+                row["data"] = base64.b64encode(bytes(row["data"])).decode()
+
+        return json.dumps(rows, default=str)
