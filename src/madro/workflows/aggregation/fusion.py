@@ -29,7 +29,7 @@ async def fuse(thread_id: str, demand: str) -> list[FusedEntity]:
     w_t = cfg.fusion.modality_weights.w_t
     w_i = cfg.fusion.modality_weights.w_i
 
-    text_scores, image_scores = await asyncio.gather(
+    text_scores, (image_scores, image_descriptions) = await asyncio.gather(
         aggregate_text(thread_id, demand),
         aggregate_image(thread_id, demand),
     )
@@ -55,7 +55,7 @@ async def fuse(thread_id: str, demand: str) -> list[FusedEntity]:
             s_fusion = w_i * s_image
             results[pub_id] = FusedEntity(
                 entity_id=pub_id,
-                entity_data={"publication_id": pub_id},
+                entity_data={"publication_id": pub_id, "image_description": image_descriptions.get(pub_id, "")},
                 s_text=0.0,
                 s_image=s_image,
                 s_fusion=s_fusion,

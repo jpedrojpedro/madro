@@ -41,4 +41,9 @@ async def invoke(job: JobExecution) -> NormalisedArtifact:
         raw = response_data["result"]
         provenance = response_data["provenance"]
 
+    if agent.modality == "image":
+        records = json.loads(raw)
+        provenance["images"] = [{"publication_id": r["publication_id"], "extension": r["extension"], "data": r["data"]} for r in records if r.get("data")]
+        raw = json.dumps([{k: v for k, v in r.items() if k != "data"} for r in records])
+
     return await normalise(raw=raw, provenance=provenance)

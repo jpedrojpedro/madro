@@ -10,7 +10,7 @@ class ImageFetcherAgent(RetrievalAgent):
         date_from = kwargs.get("date_from")
         date_to = kwargs.get("date_to")
 
-        params = [['jpg', 'mp4']]
+        params = [['jpg']]
         date_filter = ""
         if date_from:
             date_filter += " AND p.published_at >= %s"
