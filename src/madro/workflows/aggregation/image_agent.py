@@ -10,7 +10,6 @@ For each image artifact in the thread:
      embedding and the query embedding.
 """
 
-import base64
 import json
 from dataclasses import dataclass
 
@@ -109,11 +108,13 @@ async def aggregate_image(thread_id: str, demand: str) -> dict[str, float]:
                 continue
 
             publication_id = str(record.get("publication_id", ""))
-            extension = record.get("extension", "jpg")
+            # FIXME: record["extension"] can be `jpg` or `mp4`
+            #  but although it says `mp4`, it is only a single frame
+            #  of the video; Thus, let's hard code as `jpg`.
+            #  extension = record.get("extension", "jpg")
+            extension = "jpg"
 
-            b64 = base64.b64encode(raw_data).decode() if isinstance(raw_data, (bytes, memoryview)) else raw_data
-
-            description = await _describe_image(client, cfg.model.name, b64, extension)
+            description = await _describe_image(client, cfg.model.name, raw_data, extension)
             desc_embedding = encoder.encode(description).tolist()
 
             s_vis = _cosine(query_embedding, desc_embedding)
