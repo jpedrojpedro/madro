@@ -13,8 +13,11 @@ psycopg = { version = "^3.2", extras = ["binary"] }
 pgvector = "^0.4"
 pyyaml = "^6.0"
 transformers = "^5.5.4"
-torch = "^2.11.0"
+qwen-vl-utils = "^0.0.14"
+torch = "^2.7.0"
+torchvision = "^0.22.0"
 sentence-transformers = "^5.4.1"
+accelerate = "^1.7.0"
 python-dotenv = "^1.2.2"
 pillow = "^12.2.0"
 

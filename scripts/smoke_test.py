@@ -32,7 +32,7 @@ from madro.workflows.aggregation.response_synthesis import synthesize
 # Task
 # ---------------------------------------------------------------------------
 TASK_PROMPTS = [
-    "Can you show me Italian restaurants and their respective location?",
+    # "Can you show me Italian restaurants and their respective location?",
     "Show me recent photos and menus from restaurants nearby, including any visible dishes or specials.",
 ]
 

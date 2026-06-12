@@ -97,7 +97,9 @@ class Agent(GeneratedPKMixin, YamlExportMixin, db_models.Model):
     name = db_models.TextField()
     description = db_models.TextField()
     uri = db_models.TextField()
+    # TODO: not being used
     mcp_schema = db_models.JSONField()
+    retrieval_columns = db_models.JSONField()
     candidate_topics = ArrayField(base_field=db_models.TextField(), null=True, blank=True)
     modality = db_models.TextField(choices=AgentModality.choices, default=AgentModality.TEXT)
 

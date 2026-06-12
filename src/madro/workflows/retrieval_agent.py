@@ -1,13 +1,15 @@
+import asyncio
 import importlib
 import json
+from functools import partial
+
 import httpx
 from madro.models import Agent, JobExecution
 from madro.workflows.normalizer import NormalisedArtifact, normalise
+from madro.workflows.aggregation.image_agent import describe_images
 
 
 def _load_local_agent(uri: str):
-    """Convert local://madro/retrieval_agents/foo.py to a module, instantiate its RetrievalAgent subclass."""
-    # strip scheme → madro/retrieval_agents/foo.py
     module_path = uri.removeprefix("local://").removesuffix(".py").replace("/", ".")
     module = importlib.import_module(module_path)
     from madro.retrieval_agents.base import RetrievalAgent
@@ -15,7 +17,6 @@ def _load_local_agent(uri: str):
         if isinstance(attr, type) and issubclass(attr, RetrievalAgent) and attr is not RetrievalAgent:
             return attr()
     raise ValueError(f"No RetrievalAgent subclass found in {uri}")
-
 
 
 async def invoke(job: JobExecution) -> NormalisedArtifact:
@@ -29,10 +30,7 @@ async def invoke(job: JobExecution) -> NormalisedArtifact:
     if agent.uri.startswith("local://"):
         local_agent = _load_local_agent(agent.uri)
         raw = await local_agent.run(**payload)
-        provenance = {
-            "source": agent.uri,
-            "agent": agent.name,
-        }
+        provenance = {"source": agent.uri, "agent": agent.name}
     else:
         async with httpx.AsyncClient(timeout=30) as client:
             response = await client.post(agent.uri, json=payload)
@@ -43,7 +41,8 @@ async def invoke(job: JobExecution) -> NormalisedArtifact:
 
     if agent.modality == "image":
         records = json.loads(raw)
-        provenance["images"] = [{"publication_id": r["publication_id"], "extension": r["extension"], "data": r["data"]} for r in records if r.get("data")]
-        raw = json.dumps([{k: v for k, v in r.items() if k != "data"} for r in records])
+        loop = asyncio.get_event_loop()
+        enriched = await loop.run_in_executor(None, partial(describe_images, records))
+        raw = json.dumps(enriched)
 
     return await normalise(raw=raw, provenance=provenance)

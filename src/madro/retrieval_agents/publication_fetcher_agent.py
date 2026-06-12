@@ -1,8 +1,17 @@
 import json
 
 from psycopg import sql
-
+from pydantic import BaseModel, Field
+from typing import Optional
 from madro.retrieval_agents.base import RetrievalAgent
+
+
+class PublicationSearchResult(BaseModel):
+    publication_id: int = Field(description="The unique identifier of the publication.")
+    profile_id: int = Field(description="The identifier of the profile associated with the publication (either the collaborator or the primary author).")
+    profile_full_name: str = Field(description="The name of the profile owner (resolved from either the collaborator or primary author profile).")
+    publication_caption: Optional[str] = Field(default=None,description="The publication description text.")
+    rnk: float = Field(description="Postgres ts_rank full-text search score – between 0 and 1.")
 
 
 class PublicationFetcherAgent(RetrievalAgent):
@@ -48,4 +57,16 @@ class PublicationFetcherAgent(RetrievalAgent):
             async with conn.cursor() as cur:
                 await cur.execute(query, (demand, sample))
                 rows = await cur.fetchall()
-        return json.dumps(rows)
+
+        results = [
+            PublicationSearchResult(
+                publication_id=row["publication_id"],
+                profile_id=row["profile_id"],
+                profile_full_name=row["full_name"],
+                publication_caption=row["publication_caption"],
+                rnk=row["rnk"]
+            )
+            for row in rows
+        ]
+
+        return json.dumps(results, ident=2)
