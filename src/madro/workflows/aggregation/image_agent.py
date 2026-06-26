@@ -24,6 +24,7 @@ from qwen_vl_utils import process_vision_info
 from madro.config import load_config
 from madro.db import async_cursor
 from madro.workflows.normalizer import _get_encoder, _CACHE_DIR
+from madro.data_wrappers import RetrievalOut
 
 
 _QWEN_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
@@ -88,18 +89,14 @@ def _cosine(a: list[float], b: list[float]) -> float:
     return float(np.dot(va, vb) / denom) if denom else 0.0
 
 
-def describe_images(records: list[dict]) -> list[dict]:
+def describe_images(records: RetrievalOut) -> RetrievalOut:
     """Run Qwen2.5-VL on each record, return enriched records without raw data."""
-    enriched = []
-    for record in records:
-        b64 = record.get("data")
-        result = {"publication_id": record.get("publication_id"), "extension": record.get("extension"), "published_at": record.get("published_at")}
-        if b64:
-            inference = _infer_sync(b64)
-            result["caption"] = inference["caption"]
-            result["ocr_text"] = inference["ocr_text"]
-        enriched.append(result)
-    return enriched
+    for idx, img in enumerate(records.image_content):
+        if img:
+            inference = _infer_sync(img)
+            records.text_content[idx]["caption"] = inference["caption"]
+            records.text_content[idx]["ocr_text"] = inference["ocr_text"]
+    return records
 
 
 async def aggregate_image(thread_id: str, demand: str) -> dict[str, float]:

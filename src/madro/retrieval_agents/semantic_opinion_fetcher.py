@@ -18,22 +18,19 @@ class CommentSearchResult(BaseModel):
 
 class SemanticOpinionFetcherAgent(RetrievalAgent):
 
-    async def run(self, job_id: str, demand: str, **kwargs) -> str:
+    async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample") or 10
         date_from = kwargs.get("date_from")
         date_to = kwargs.get("date_to")
 
         params = []
-        if date_from or date_to:
-            clauses = []
-            if date_from:
-                clauses.append(sql.SQL("AND published_at >= %s"))
-            if date_to:
-                clauses.append(sql.SQL("AND published_at <= %s"))
-            date_filter = sql.SQL(" ").join(clauses)
-        else:
-            date_filter = sql.SQL("")
-        params.append(date_filter)
+        date_clauses = []
+        if date_from:
+            date_clauses.append(sql.SQL("AND published_at >= %s"))
+            params.append(date_from)
+        if date_to:
+            date_clauses.append(sql.SQL("AND published_at <= %s"))
+            params.append(date_to)
         params.append(sample)
 
         query = sql.SQL("""
@@ -45,16 +42,16 @@ class SemanticOpinionFetcherAgent(RetrievalAgent):
                published_at
         FROM comment
         WHERE reply_to IS NULL
-          {}
+          {date_filter}
         ORDER BY published_at DESC, num_likes DESC
         LIMIT %s
-        """)
+        """).format(date_filter=sql.SQL(" ").join(date_clauses))
         async with await self.connect() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(query, params)
                 rows = await cur.fetchall()
 
-        results = [
+        return [
             CommentSearchResult(
                 comment_id=row["comment_id"],
                 publication_id=row["publication_id"],
@@ -62,8 +59,6 @@ class SemanticOpinionFetcherAgent(RetrievalAgent):
                 comment=row["comment"],
                 num_likes=row["num_likes"],
                 published_at=row["published_at"]
-            )
+            ).model_dump(mode="json")
             for row in rows
         ]
-
-        return json.dumps(results, ident=2)

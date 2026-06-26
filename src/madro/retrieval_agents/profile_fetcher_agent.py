@@ -15,7 +15,7 @@ class ProfileFetcherResult(BaseModel):
 
 class ProfileFetcherAgent(RetrievalAgent):
 
-    async def run(self, job_id: str, demand: str, **kwargs) -> str:
+    async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample") if kwargs.get("sample") else 10
         query = sql.SQL("""
         WITH search_setup AS (
@@ -43,7 +43,7 @@ class ProfileFetcherAgent(RetrievalAgent):
                 await cur.execute(query, (demand, sample))
                 rows = await cur.fetchall()
 
-        results = [
+        return [
             ProfileFetcherResult(
                 profile_id=row["profile_id"],
                 profile_full_name=row["profile_full_name"],
@@ -52,5 +52,3 @@ class ProfileFetcherAgent(RetrievalAgent):
             ).model_dump(mode="json")
             for row in rows
         ]
-
-        return json.dumps(results, ident=2)

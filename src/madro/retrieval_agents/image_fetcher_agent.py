@@ -7,7 +7,7 @@ from madro.retrieval_agents.base import RetrievalAgent
 
 
 class ImageFetcherResult(BaseModel):
-    publication_id: str = Field(description="The unique identifier of the publication.")
+    publication_id: int = Field(description="The unique identifier of the publication.")
     position: int = Field(description="The structural sequence position.")
     extension: str = Field(description="The file type extension – jpg.")
     data: str = Field(description="The extracted raw file in b64 format.")
@@ -17,18 +17,18 @@ class ImageFetcherResult(BaseModel):
 
 class ImageFetcherAgent(RetrievalAgent):
 
-    async def run(self, job_id: str, demand: str, **kwargs) -> str:
+    async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample") or 10
         date_from = kwargs.get("date_from")
         date_to = kwargs.get("date_to")
 
         params = [demand, ['jpg']]
-        date_filter = ""
+        date_clauses = []
         if date_from:
-            date_filter += " AND p.published_at >= %s"
+            date_clauses.append(sql.SQL("AND p.published_at >= %s"))
             params.append(date_from)
         if date_to:
-            date_filter += " AND p.published_at <= %s"
+            date_clauses.append(sql.SQL("AND p.published_at <= %s"))
             params.append(date_to)
         params.append(sample)
 
@@ -59,13 +59,13 @@ class ImageFetcherAgent(RetrievalAgent):
           {date_filter}
         ORDER BY rnk DESC, p.published_at DESC, rf.position ASC
         LIMIT %s
-        """)
+        """).format(date_filter=sql.SQL(" ").join(date_clauses))
         async with await self.connect() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(query, params)
                 rows = await cur.fetchall()
 
-        results = [
+        return [
             ImageFetcherResult(
                 publication_id=row["publication_id"],
                 position=row["position"],
@@ -75,12 +75,8 @@ class ImageFetcherAgent(RetrievalAgent):
                     if isinstance(row.get("data"), (bytes, memoryview))
                     else row["data"]
                 ),
-                published_at=datetime.strptime(
-                    row["published_at"], "%Y-%m-%d %H:%M:%S"
-                ),
+                published_at=row["published_at"],
                 rnk=row["rnk"],
             ).model_dump(mode="json")
             for row in rows
         ]
-
-        return json.dumps(results, ident=2)

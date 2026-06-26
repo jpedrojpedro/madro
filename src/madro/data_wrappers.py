@@ -1,5 +1,7 @@
 from uuid import UUID
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator, model_validator
+import base64
+from typing import Any
 
 
 class AgentIn(BaseModel):
@@ -66,3 +68,21 @@ class SubDemand(BaseModel):
 
 class DecomposedDemand(BaseModel):
     sub_demands: list[SubDemand]
+
+
+class RetrievalOut(BaseModel):
+    image_content: list[str] = None
+    text_content: list[dict[str, Any]] = None
+    provenance: dict[str, str] = None
+
+    @field_validator("image_content", mode="after")
+    @classmethod
+    def validate_base64_images(cls, v: list[str]) -> list[str]:
+        for index, item in enumerate(v):
+            try:
+                base64.b64decode(item.encode('utf-8'), validate=True)
+            except Exception as e:
+                raise ValueError(
+                    f"Invalid base64 string found at image_content[{index}]: {e}"
+                )
+        return v

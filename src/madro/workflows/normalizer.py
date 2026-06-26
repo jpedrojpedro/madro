@@ -5,6 +5,7 @@ import asyncio
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
+from madro.data_wrappers import RetrievalOut
 
 from sentence_transformers import SentenceTransformer
 
@@ -82,21 +83,14 @@ async def _embed(chunks: list[str]) -> list[list[float]]:
     return [e.tolist() for e in embeddings]
 
 
-async def normalise(
-    raw: str,
-    provenance: dict,
-) -> NormalisedArtifact:
-    chunks = _chunk(raw)
+async def normalise(records: RetrievalOut) -> NormalisedArtifact:
+    canonical_text = json.dumps(records.text_content, ensure_ascii=False)
+    chunks = _chunk(canonical_text)
     embeddings = await _embed(chunks)
 
     return NormalisedArtifact(
-        canonical_text=raw,
-        lexical_index=LexicalIndex(
-            normalization=_normalise_lexical(raw),
-        ),
-        semantic_index=SemanticIndex(
-            chunks=chunks,
-            embeddings=embeddings,
-        ),
-        provenance=provenance,
+        canonical_text=canonical_text,
+        lexical_index=LexicalIndex(normalization=_normalise_lexical(canonical_text)),
+        semantic_index=SemanticIndex(chunks=chunks, embeddings=embeddings),
+        provenance=records.provenance or {},
     )

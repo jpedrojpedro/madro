@@ -14,5 +14,5 @@ class RetrievalAgent(ABC):
         )
 
     @abstractmethod
-    async def run(self, job_id: str, demand: str, **kwargs) -> str:
+    async def run(self, job_id: str, demand: str, **kwargs) -> str | list | dict:
         """Execute the retrieval and return the raw result string."""

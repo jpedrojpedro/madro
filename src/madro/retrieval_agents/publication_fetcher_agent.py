@@ -16,7 +16,7 @@ class PublicationSearchResult(BaseModel):
 
 class PublicationFetcherAgent(RetrievalAgent):
 
-    async def run(self, job_id: str, demand: str, **kwargs) -> str:
+    async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample") if kwargs.get("sample") else 10
         query = sql.SQL("""
         WITH search_setup AS (
@@ -58,15 +58,13 @@ class PublicationFetcherAgent(RetrievalAgent):
                 await cur.execute(query, (demand, sample))
                 rows = await cur.fetchall()
 
-        results = [
+        return [
             PublicationSearchResult(
                 publication_id=row["publication_id"],
                 profile_id=row["profile_id"],
                 profile_full_name=row["full_name"],
                 publication_caption=row["publication_caption"],
                 rnk=row["rnk"]
-            )
+            ).model_dump(mode="json")
             for row in rows
         ]
-
-        return json.dumps(results, ident=2)
