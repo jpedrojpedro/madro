@@ -1,6 +1,7 @@
 from uuid import UUID
 import base64
 from typing import Any
+from dataclasses import dataclass
 from pydantic import BaseModel, Field, model_validator, field_validator
 
 
@@ -142,3 +143,23 @@ class RetrievalOut(BaseModel):
                 raise ValueError(
                     f"Invalid base64 string found at image_content[{index}]")
         return v
+
+
+@dataclass
+class LexicalIndex:
+    normalization: str
+
+
+@dataclass
+class SemanticIndex:
+    chunks: list[str]
+    embeddings: list[list[float]]
+    model: str
+
+
+@dataclass
+class NormalisedArtifact:
+    canonical_text: str  # Now stores the synthesized Markdown text
+    lexical_index: LexicalIndex
+    semantic_index: SemanticIndex
+    provenance: dict
