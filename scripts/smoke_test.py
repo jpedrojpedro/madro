@@ -20,9 +20,9 @@ django.setup()
 
 import json
 from madro.models import Agent, AgentTopic, ExecutionStatus, JobExecution, JobStatus
-from madro.workflows.topic_categorization_agent import categorize_and_assign
+from madro.internal_agents.topic_categorization_agent import categorize_and_assign
 from madro.workflows.thread_workflow import run_thread
-from madro.workflows.agent_runner import _persist_artifact
+from madro.broker.agent_runner import _persist_artifact
 from madro.workflows.retrieval_agent import invoke
 from madro.workflows.aggregation.fusion import fuse
 from madro.workflows.aggregation.response_synthesis import synthesize

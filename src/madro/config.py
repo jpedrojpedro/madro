@@ -9,7 +9,7 @@ from pydantic_ai.providers.google import GoogleProvider
 class ModelConfig(BaseModel):
     name: str = "gemini-3.5-flash"
     temperature: float = 0.0
-    max_tokens: int = 65535
+    max_tokens: int = 65_535
 
 
 class DebugConfig(BaseModel):

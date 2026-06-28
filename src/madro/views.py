@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from pydantic import ValidationError
 from madro.data_wrappers import AgentIn, AgentOut, TopicOut, ThreadIn, ThreadOut, SubDemandOut
 from madro.models import Agent
-from madro.workflows.topic_categorization_agent import categorize_and_assign
+from madro.internal_agents.topic_categorization_agent import categorize_and_assign
 from madro.workflows.thread_workflow import run_thread
 
 

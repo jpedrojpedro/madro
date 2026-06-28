@@ -170,6 +170,10 @@ class JobExecution(GeneratedPKMixin, YamlExportMixin, db_models.Model):
     class Meta:
         db_table = '"broker"."job_execution"'
         managed = False
+        constraints = [
+            db_models.UniqueConstraint(fields=['job_id', 'agent'],
+                                       name='unique_job_agent')
+        ]
 
 
 class JobStatus(YamlExportMixin, db_models.Model):

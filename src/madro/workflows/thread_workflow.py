@@ -1,8 +1,8 @@
 from uuid import UUID
 from madro.models import Thread, Message, MessageRole
-from madro.workflows.interactive_agent import enrich_prompt
-from madro.workflows.demand_categorization_agent import decompose_demand
-from madro.workflows.publisher import publish
+from madro.internal_agents.interactive_agent import enrich_prompt
+from madro.internal_agents.demand_categorization_agent import decompose_demand
+from madro.broker.publisher import publish
 from madro.data_wrappers import DecomposedDemand
 
 

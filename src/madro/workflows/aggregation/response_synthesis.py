@@ -10,8 +10,8 @@ import json
 from pydantic_ai import Agent
 
 from madro.config import get_model
-from madro.workflows.aggregation.fusion import FusedEntity, fuse
-from madro.workflows.system_prompts import ResponseSynthesisSP
+from madro.workflows.aggregation.fusion import fuse
+from madro.internal_agents.system_prompts import ResponseSynthesisSP
 
 
 async def synthesize(thread_id: str, demand: str) -> str:

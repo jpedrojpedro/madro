@@ -1,5 +1,3 @@
-import json
-
 from psycopg import sql
 from madro.retrieval_agents.base import RetrievalAgent
 from pydantic import BaseModel, Field
