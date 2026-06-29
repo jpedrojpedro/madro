@@ -57,3 +57,8 @@ User question:
 Ranked evidence (JSON, ordered by relevance):
 {evidence}
 """
+
+EnrichmentAgentSP = {
+    "description": "Describe this image in detail.",
+    "extraction": "Extract all text from this image.\n\nReturn markdown preserving structure.",
+}

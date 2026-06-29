@@ -4,7 +4,7 @@ import asyncio
 from functools import partial
 from pathlib import Path
 from django.conf import settings
-from madro.data_wrappers import RetrievalOut, LexicalIndex, SemanticIndex, NormalisedArtifact
+from madro.data_wrappers import RetrievalOut, LexicalIndex, SemanticIndex, NormalizedArtifact
 from sentence_transformers import SentenceTransformer
 
 
@@ -88,7 +88,7 @@ class MultimodalNormalizer:
 
         return "\n".join(markdown_lines).strip()
 
-    def _normalise_lexical(self, text: str) -> str:
+    def _normalize_lexical(self, text: str) -> str:
         """Strips accents, symbols, markdown tokens, and builds low-level clean token list."""
         text = text.lower()
         text = unicodedata.normalize("NFD", text)
@@ -120,7 +120,7 @@ class MultimodalNormalizer:
         )
         return [e.tolist() for e in embeddings]
 
-    async def normalise(self, records: RetrievalOut) -> NormalisedArtifact:
+    async def normalize(self, records: RetrievalOut) -> NormalizedArtifact:
         """
         Main execution pipeline. Converts raw multimodal records into unified markdown,
         then processes both index pipelines concurrently.
@@ -131,9 +131,9 @@ class MultimodalNormalizer:
         # 2. Extract elements for Lexical and Semantic Indices
         chunks = self._chunk(canonical_markdown)
         embeddings = await self._embed(chunks)
-        lexical_normalization = self._normalise_lexical(canonical_markdown)
+        lexical_normalization = self._normalize_lexical(canonical_markdown)
 
-        return NormalisedArtifact(
+        return NormalizedArtifact(
             canonical_text=canonical_markdown,
             lexical_index=LexicalIndex(normalization=lexical_normalization),
             semantic_index=SemanticIndex(

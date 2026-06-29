@@ -7,9 +7,9 @@ import importlib
 import json
 from functools import partial
 import httpx
-from madro.workflows.normalizer import NormalisedArtifact, normalise
+from madro.workflows.normalizer import MultimodalNormalizer
 from madro.workflows.aggregation.image_agent import describe_images
-from madro.data_wrappers import RetrievalOut
+from madro.data_wrappers import RetrievalOut, NormalizedArtifact
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ class AgentRunner:
         return await sync_to_async(execute, thread_sensitive=False)()
 
     async def persist_artifact(
-        self, job_status: JobStatus, artifact: NormalisedArtifact
+        self, job_status: JobStatus, artifact: NormalizedArtifact
     ) -> None:
         async with async_cursor() as cur:
             await cur.execute(
@@ -87,7 +87,7 @@ class AgentRunner:
                     [str(job_status.id), idx, chunk, vector_literal],
                 )
 
-    async def invoke(self, job: JobExecution) -> NormalisedArtifact:
+    async def invoke(self, job: JobExecution) -> NormalizedArtifact:
         agent: Agent = job.agent
         payload = {
             "job_id": str(job.job_id),
@@ -116,7 +116,8 @@ class AgentRunner:
                 partial(describe_images, retrieval_out)
             )
 
-        return await normalise(retrieval_out)
+        multi_norm = MultimodalNormalizer()
+        return await multi_norm.normalize(retrieval_out)
 
     async def process_single_job(self, job: JobExecution) -> None:
         # TODO: handle racing-condition

@@ -6,7 +6,7 @@ Exercises the full pipeline against real data:
   Step 0: seed ProfileFetcherAgent + PublicationFetcherAgent via categorize_and_assign
   Step 1: POST /thread → InteractiveAgent → DemandCategorizationAgent → Publisher
   Step 2: inspect published JobExecution rows
-  Step 3: AgentRunner — invoke each agent against RETRIEVAL_DB, normalise, persist
+  Step 3: AgentRunner — invoke each agent against RETRIEVAL_DB, normalize, persist
 
 Usage:
     poetry run python scripts/smoke_test.py

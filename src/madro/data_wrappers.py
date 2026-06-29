@@ -158,7 +158,7 @@ class SemanticIndex:
 
 
 @dataclass
-class NormalisedArtifact:
+class NormalizedArtifact:
     canonical_text: str  # Now stores the synthesized Markdown text
     lexical_index: LexicalIndex
     semantic_index: SemanticIndex

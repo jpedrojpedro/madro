@@ -18,7 +18,7 @@ User Prompt
                 │  JobExecution rows (one per agent × topic match)
                 ▼
 ┌─────────────────────────────┐
-│  2. AgentRunner             │  invoke() per job → normalise() → persist artifact
+│  2. AgentRunner             │  invoke() per job → normalize() → persist artifact
 └─────────────────────────────┘
                 │  broker.job_artifact + job_artifact_document
                 ▼
@@ -77,7 +77,7 @@ madro/
 │   │   ├── topic_categorization_agent.py   # Agent → topic assignment (LLM)
 │   │   ├── publisher.py           # Sub-demands → JobExecution rows
 │   │   ├── retrieval_agent.py     # invoke(): transport + modality post-processing
-│   │   ├── normalizer.py          # chunk + embed → NormalisedArtifact
+│   │   ├── normalizer.py          # chunk + embed → NormalizedArtifact
 │   │   ├── agent_runner.py        # Persist artifacts to broker schema
 │   │   ├── system_prompts.py      # All LLM system prompts
 │   │   └── aggregation/
@@ -171,14 +171,14 @@ poetry run python scripts/smoke_test.py
 
 The smoke test runs five steps:
 
-| Step | What it does |
-|------|-------------|
-| 0 | Seeds agents and assigns topics via LLM categorisation |
-| 1 | Submits task prompts, enriches and decomposes demands, publishes jobs |
-| 2 | Inspects published `JobExecution` rows |
-| 3 | Invokes each agent, runs image inference (BLIP + TrOCR) if needed, normalises and persists artifacts |
-| 4 | Runs fusion ranking across text and image modalities |
-| 5 | Synthesises a natural-language response via LLM |
+| Step | What it does                                                                                         |
+|------|------------------------------------------------------------------------------------------------------|
+| 0 | Seeds agents and assigns topics via LLM categorisation                                               |
+| 1 | Submits task prompts, enriches and decomposes demands, publishes jobs                                |
+| 2 | Inspects published `JobExecution` rows                                                               |
+| 3 | Invokes each agent, runs image inference (BLIP + TrOCR) if needed, normalizes and persists artifacts |
+| 4 | Runs fusion ranking across text and image modalities                                                 |
+| 5 | Synthesises a natural-language response via LLM                                                      |
 
 ---
 
