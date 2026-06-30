@@ -5,10 +5,9 @@ from madro.db import async_cursor
 from madro.models import Agent, ExecutionStatus, JobExecution, JobStatus
 import importlib
 import json
-from functools import partial
 import httpx
 from madro.workflows.normalizer import MultimodalNormalizer
-from madro.workflows.aggregation.image_agent import describe_images
+from madro.internal_agents.enrichment_agent import EnrichmentAgent
 from madro.data_wrappers import RetrievalOut, NormalizedArtifact
 
 logger = logging.getLogger(__name__)
@@ -110,11 +109,7 @@ class AgentRunner:
         retrieval_out.provenance = {"source": agent.uri, "agent": agent.name}
 
         if agent.modality == "image" and retrieval_out.image_content:
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(
-                None,
-                partial(describe_images, retrieval_out)
-            )
+            await EnrichmentAgent().enrich_records(retrieval_out)
 
         multi_norm = MultimodalNormalizer()
         return await multi_norm.normalize(retrieval_out)

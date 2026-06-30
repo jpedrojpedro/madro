@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from madro.config import load_config
 from madro.db import async_cursor
-from madro.workflows.normalizer import _get_encoder
+from madro.workflows.normalizer import MultimodalNormalizer
 
 
 @dataclass
@@ -23,8 +23,7 @@ class ScoredEntity:
 
 
 def _embed_query(query: str) -> list[float]:
-    encoder = _get_encoder()
-    return encoder.encode(query).tolist()
+    return MultimodalNormalizer()._get_encoder().encode(query).tolist()
 
 
 async def aggregate_text(thread_id: str, demand: str) -> list[ScoredEntity]:

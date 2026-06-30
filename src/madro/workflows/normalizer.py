@@ -54,6 +54,7 @@ class MultimodalNormalizer:
 
         # Tier 1: Contextual Visual Description (VLM output)
         # Assuming your updated RetrievalOut contains this field or parsed images
+        # FIXME: Pick the description and ocr_text fields from text_content
         if hasattr(records, "image_description") and records.image_description:
             markdown_lines.extend(
                 ["## Visual Description", records.image_description, ""])

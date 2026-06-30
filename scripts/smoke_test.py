@@ -22,8 +22,7 @@ import json
 from madro.models import Agent, AgentTopic, ExecutionStatus, JobExecution, JobStatus
 from madro.internal_agents.topic_categorization_agent import categorize_and_assign
 from madro.workflows.thread_workflow import run_thread
-from madro.broker.agent_runner import _persist_artifact
-from madro.workflows.retrieval_agent import invoke
+from madro.broker.agent_runner import AgentRunner
 from madro.workflows.aggregation.fusion import fuse
 from madro.workflows.aggregation.response_synthesis import synthesize
 
@@ -197,6 +196,8 @@ async def _run_task(task_prompt: str) -> None:
     # ------------------------------------------------------------------
     _print_section("Step 3 · AgentRunner")
 
+    runner = AgentRunner()
+
     for job in jobs:
         print(f"\nProcessing agent={job.agent.name}")
 
@@ -207,8 +208,8 @@ async def _run_task(task_prompt: str) -> None:
         )
 
         try:
-            artifact = await invoke(job)
-            await _persist_artifact(job_status, artifact)
+            artifact = await runner.invoke(job)
+            await runner.persist_artifact(job_status, artifact)
 
             job_status.status = ExecutionStatus.COMPLETED
             await job_status.asave(update_fields=["status"])
