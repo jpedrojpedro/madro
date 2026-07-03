@@ -46,49 +46,58 @@ class MultimodalNormalizer:
             )
         return self._encoder
 
+    _LONG_FIELD_THRESHOLD = 100
+
+    @classmethod
+    def _is_long_value(cls, value) -> bool:
+        return isinstance(value, str) and (
+            "\n" in value or len(value) > cls._LONG_FIELD_THRESHOLD
+        )
+
+    @classmethod
+    def _split_fields(cls, item: dict) -> tuple[dict, dict]:
+        """Splits a record's fields into inline-safe scalars and prose-length values."""
+        scalar_fields = {k: v for k, v in item.items() if not cls._is_long_value(v)}
+        long_fields = {k: v for k, v in item.items() if cls._is_long_value(v)}
+        return scalar_fields, long_fields
+
     def synthesize_markdown(self, records: RetrievalOut) -> str:
         """
-        Assembles the three core streams (OCR, Description, and Structured data)
-        into a single, highly readable Markdown structure.
+        Renders text_content as a single Markdown representation: a compact
+        table when every field is scalar, otherwise one block per record with
+        long free-text fields (e.g. img_caption, ocr_text) kept as prose —
+        tabulate's pipe format breaks on embedded newlines, so long text
+        cannot be dumped into table cells.
         """
+        if not records.text_content:
+            return ""
+
+        has_long_fields = any(
+            isinstance(item, dict) and self._split_fields(item)[1]
+            for item in records.text_content
+        )
+
+        if not has_long_fields:
+            return tabulate(records.text_content, headers="keys", tablefmt="pipe")
+
         markdown_lines = []
-
-        # Tier 1: Contextual Visual Description (VLM output)
-        # Rely on the per-image `img_caption` inferred by the VLM rather than the raw payload
         if records.image_content:
-            descriptions = [
-                item["img_caption"] for item in records.text_content
-                if isinstance(item, dict) and item.get("img_caption")
-            ]
-            if descriptions:
-                markdown_lines.append("## Visual Description")
-                markdown_lines.append(f"[{len(records.image_content)} Image(s) Sampled]")
-                markdown_lines.extend(descriptions)
-                markdown_lines.append("")
-
-        # Tier 2: Extracted Text (Sparse/Dense OCR Content)
-        # The `img_caption` field is rendered alongside the other dict fields, not excluded
-        if records.text_content:
-            markdown_lines.append("## Extracted Text (OCR)")
-            for i, item in enumerate(records.text_content, start=1):
-                markdown_lines.append(f"#{i}")
-                if isinstance(item, dict):
-                    for k, v in item.items():
-                        markdown_lines.append(f"**{k}**: {v}")
-                else:
-                    markdown_lines.append(str(item))
+            markdown_lines.append(f"_{len(records.image_content)} image(s) sampled_")
             markdown_lines.append("")
 
-        # Tier 3: Relational / Tabular Data (Serialized Dictionary Payload)
-        structured_items = [
-            item for item in records.text_content
-            if isinstance(item, dict) and len(item) > 1
-        ]
-        if structured_items:
-            markdown_lines.append("## Tabular and Structured Data")
-            markdown_lines.append(
-                tabulate(structured_items, headers="keys", tablefmt="pipe")
-            )
+        for i, item in enumerate(records.text_content, start=1):
+            markdown_lines.append(f"### #{i}")
+            if isinstance(item, dict):
+                scalar_fields, long_fields = self._split_fields(item)
+                if scalar_fields:
+                    markdown_lines.append(
+                        " · ".join(f"**{k}**: {v}" for k, v in scalar_fields.items())
+                    )
+                for k, v in long_fields.items():
+                    markdown_lines.append(f"**{k}**")
+                    markdown_lines.append(v)
+            else:
+                markdown_lines.append(str(item))
             markdown_lines.append("")
 
         return "\n".join(markdown_lines).strip()
