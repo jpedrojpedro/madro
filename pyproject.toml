@@ -26,6 +26,7 @@ tabulate = "^0.9.0"
 pytest = "^8.3"
 pytest-django = "^4.10"
 ruff = "^0.11"
+allure-pytest = "^2.16.0"
 
 [tool.ruff]
 src = ["src"]
@@ -35,3 +36,7 @@ line-length = 100
 DJANGO_SETTINGS_MODULE = "madro.settings"
 pythonpath = ["src"]
 testpaths = ["tests"]
+addopts = "-m 'not benchmark'"
+markers = [
+    "benchmark: live end-to-end MADRO benchmark (hits real DBs and LLMs, run via `make benchmark`)",
+]

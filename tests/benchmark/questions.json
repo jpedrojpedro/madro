@@ -1,0 +1,10 @@
+[
+  {
+    "id": "q1",
+    "prompt": "Can you show me Italian restaurants and their respective location?"
+  },
+  {
+    "id": "q2",
+    "prompt": "Show me recent photos and menus from restaurants nearby, including any visible dishes or specials."
+  }
+]
