@@ -23,8 +23,8 @@ from madro.models import Agent, AgentTopic, ExecutionStatus, JobExecution, JobSt
 from madro.internal_agents.topic_categorization_agent import categorize_and_assign
 from madro.workflows.thread_workflow import run_thread
 from madro.broker.agent_runner import AgentRunner
-from madro.workflows.aggregation.fusion import fuse
-from madro.workflows.aggregation.response_synthesis import synthesize
+from madro.aggregation.relevance_ranker import RelevanceRanker
+from madro.aggregation.response_synthesis import ResponseSynthesisAgent
 
 
 # ---------------------------------------------------------------------------
@@ -228,14 +228,14 @@ async def _run_task(task_prompt: str) -> None:
     # ------------------------------------------------------------------
     # Step 4: Fusion
     # ------------------------------------------------------------------
-    _print_section("Step 4 · Fusion ranking")
+    _print_section("Step 4 · Relevance ranking")
 
-    ranked = await fuse(str(thread.id), task_prompt)
+    ranked = await RelevanceRanker().rank(str(thread.id), task_prompt)
 
     print(f"Entities ranked: {len(ranked)}\n")
     for i, entity in enumerate(ranked, 1):
         print(f"  #{i} entity_id={entity.entity_id}")
-        print(f"     S_text={entity.s_text:.4f}  S_image={entity.s_image:.4f}  S_fusion={entity.s_fusion:.4f}")
+        print(f"     S_lex={entity.s_lex:.4f}  S_sem={entity.s_sem:.4f}  S_relevance={entity.s_relevance:.4f}")
         preview = {k: v for k, v in list(entity.entity_data.items())[:4]}
         print(f"     data={json.dumps(preview, ensure_ascii=False)}")
 
@@ -244,7 +244,7 @@ async def _run_task(task_prompt: str) -> None:
     # ------------------------------------------------------------------
     _print_section("Step 5 · Response Synthesis")
 
-    response = await synthesize(str(thread.id), task_prompt)
+    response = await ResponseSynthesisAgent().synthesize(str(thread.id), task_prompt)
     print(response)
 
 

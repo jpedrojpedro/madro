@@ -18,25 +18,9 @@ class DebugConfig(BaseModel):
     log_level: str = "INFO"
 
 
-class TextFusionConfig(BaseModel):
+class FusionConfig(BaseModel):
     alpha: float = 0.7
     beta: float = 0.3
-
-
-class ImageFusionConfig(BaseModel):
-    gamma: float = 0.5
-    delta: float = 0.5
-
-
-class ModalityWeightsConfig(BaseModel):
-    w_t: float = 0.7
-    w_i: float = 0.3
-
-
-class FusionConfig(BaseModel):
-    text: TextFusionConfig = TextFusionConfig()
-    image: ImageFusionConfig = ImageFusionConfig()
-    modality_weights: ModalityWeightsConfig = ModalityWeightsConfig()
 
 
 class AppConfig(BaseModel):
