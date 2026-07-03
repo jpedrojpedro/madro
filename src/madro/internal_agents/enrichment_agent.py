@@ -102,10 +102,10 @@ class EnrichmentAgent:
         image = self._resize(Image.open(io.BytesIO(image_bytes)).convert("RGB"))
 
         # Dual extraction strategy matching the 3-Tier indexing architecture
-        caption = self._qwen_infer(processor, model, image, self.describe_prompt)
+        img_caption = self._qwen_infer(processor, model, image, self.describe_prompt)
         ocr_text = self._qwen_infer(processor, model, image, self.ocr_prompt)
 
-        return {"caption": caption, "ocr_text": ocr_text}
+        return {"img_caption": img_caption, "ocr_text": ocr_text}
 
     async def enrich_records(self, records: RetrievalOut) -> RetrievalOut:
         """
@@ -135,7 +135,7 @@ class EnrichmentAgent:
                 records.text_content[idx] = {"raw_content": records.text_content[idx]}
 
             # Append the structured multimodal features back onto the text context wrapper
-            records.text_content[idx]["caption"] = inference["caption"]
+            records.text_content[idx]["img_caption"] = inference["img_caption"]
             records.text_content[idx]["ocr_text"] = inference["ocr_text"]
 
         return records

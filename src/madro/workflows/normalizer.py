@@ -4,6 +4,7 @@ import asyncio
 from functools import partial
 from pathlib import Path
 from django.conf import settings
+from tabulate import tabulate
 from madro.data_wrappers import RetrievalOut, LexicalIndex, SemanticIndex, NormalizedArtifact
 from sentence_transformers import SentenceTransformer
 
@@ -53,20 +54,24 @@ class MultimodalNormalizer:
         markdown_lines = []
 
         # Tier 1: Contextual Visual Description (VLM output)
-        # Assuming your updated RetrievalOut contains this field or parsed images
-        # FIXME: Pick the description and ocr_text fields from text_content
-        if hasattr(records, "image_description") and records.image_description:
-            markdown_lines.extend(
-                ["## Visual Description", records.image_description, ""])
-        elif records.image_content:
-            markdown_lines.extend(["## Visual Description",
-                                   f"[Contains {len(records.image_content)} Image Payload(s)]",
-                                   ""])
+        # Rely on the per-image `img_caption` inferred by the VLM rather than the raw payload
+        if records.image_content:
+            descriptions = [
+                item["img_caption"] for item in records.text_content
+                if isinstance(item, dict) and item.get("img_caption")
+            ]
+            if descriptions:
+                markdown_lines.append("## Visual Description")
+                markdown_lines.append(f"[{len(records.image_content)} Image(s) Sampled]")
+                markdown_lines.extend(descriptions)
+                markdown_lines.append("")
 
         # Tier 2: Extracted Text (Sparse/Dense OCR Content)
+        # The `img_caption` field is rendered alongside the other dict fields, not excluded
         if records.text_content:
             markdown_lines.append("## Extracted Text (OCR)")
-            for item in records.text_content:
+            for i, item in enumerate(records.text_content, start=1):
+                markdown_lines.append(f"#{i}")
                 if isinstance(item, dict):
                     for k, v in item.items():
                         markdown_lines.append(f"**{k}**: {v}")
@@ -75,16 +80,15 @@ class MultimodalNormalizer:
             markdown_lines.append("")
 
         # Tier 3: Relational / Tabular Data (Serialized Dictionary Payload)
-        # Using a fallback to convert structural dictionaries into neat markdown lines
-        if records.text_content and any(
-                isinstance(i, dict) and len(i) > 1 for i in records.text_content):
+        structured_items = [
+            item for item in records.text_content
+            if isinstance(item, dict) and len(item) > 1
+        ]
+        if structured_items:
             markdown_lines.append("## Tabular and Structured Data")
-            for item in records.text_content:
-                if isinstance(item, dict) and len(item) > 1:
-                    markdown_lines.append("| Property | Value |")
-                    markdown_lines.append("| :--- | :--- |")
-                    for k, v in item.items():
-                        markdown_lines.append(f"| {k} | {v} |")
+            markdown_lines.append(
+                tabulate(structured_items, headers="keys", tablefmt="pipe")
+            )
             markdown_lines.append("")
 
         return "\n".join(markdown_lines).strip()
