@@ -98,5 +98,10 @@
     "id": "Q20",
     "complexity": "out-of-scope (exception)",
     "prompt": "What restaurants comply with all local health regulations?"
+  },
+  {
+    "id": "Q21",
+    "complexity": "high (multi-modal, temporal)",
+    "prompt": "Semantically speaking, how are the comments related to `haight_clothing` account?"
   }
 ]

@@ -21,4 +21,4 @@ lint:
 # View the report with the Allure commandline tool (e.g. `brew install allure`):
 #   allure serve allure-results
 benchmark:
-	poetry run pytest -p no:django -m benchmark --alluredir=allure-results tests/benchmark
+	poetry run pytest -p no:django -m benchmark --alluredir=allure-results tests/benchmark -v

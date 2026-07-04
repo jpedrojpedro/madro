@@ -24,10 +24,23 @@ def _load_local_agent(uri: str):
 
 
 class AgentRunner:
-    def __init__(self, batch_limit: int = 10, interval: int = 3, timeout: int = 30):
+    def __init__(
+            self,
+            batch_limit: int = 10,
+            interval: int = 3,
+            timeout: int = 30,
+            enrichment_agent: EnrichmentAgent | None = None,
+            normalizer: MultimodalNormalizer | None = None,
+    ):
         self.batch_limit = batch_limit
         self.interval = interval
         self.timeout = timeout
+        # Shared across invoke() calls — EnrichmentAgent/MultimodalNormalizer lazily
+        # load their models on first use, so a fresh instance per job would reload
+        # the VLM (and encoder) from scratch every time, growing memory unboundedly
+        # over a long-running batch.
+        self._enrichment_agent = enrichment_agent or EnrichmentAgent()
+        self._normalizer = normalizer or MultimodalNormalizer()
         self.queue_query = """
            WITH oldest_incomplete_job AS (
                SELECT DISTINCT je.job_id, je.created_at
@@ -86,12 +99,13 @@ class AgentRunner:
                     [str(job_status.id), idx, chunk, vector_literal],
                 )
 
-    async def invoke(self, job: JobExecution) -> NormalizedArtifact:
+    async def invoke(self, job: JobExecution, sample: int = 10) -> NormalizedArtifact:
         agent: Agent = job.agent
         payload = {
             "job_id": str(job.job_id),
             "demand": job.demand.content,
             "schema": agent.mcp_schema,
+            "sample": sample,
         }
 
         raw = None
@@ -109,10 +123,9 @@ class AgentRunner:
         retrieval_out.provenance = {"source": agent.uri, "agent": agent.name}
 
         if agent.modality == "image" and retrieval_out.image_content:
-            await EnrichmentAgent().enrich_records(retrieval_out)
+            await self._enrichment_agent.enrich_records(retrieval_out)
 
-        multi_norm = MultimodalNormalizer()
-        return await multi_norm.normalize(retrieval_out)
+        return await self._normalizer.normalize(retrieval_out)
 
     async def process_single_job(self, job: JobExecution) -> None:
         # TODO: handle racing-condition

@@ -17,6 +17,9 @@ docs/plan discussion in the "Key constraint" section for why.
 
 import asyncio
 import json
+import os
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 import allure
@@ -25,13 +28,23 @@ import pytest
 from madro.aggregation.relevance_ranker import RelevanceRanker
 from madro.aggregation.response_synthesis import ResponseSynthesisAgent
 from madro.broker.agent_runner import AgentRunner
+from madro.internal_agents.enrichment_agent import EnrichmentAgent
 from madro.models import ExecutionStatus, JobExecution, JobStatus
 from madro.seed_agents import seed_agents
+from madro.workflows.normalizer import MultimodalNormalizer
 from madro.workflows.thread_workflow import run_thread
 
 pytestmark = pytest.mark.benchmark
 
 QUESTIONS = json.loads((Path(__file__).parent / "questions.json").read_text())
+
+# Set BENCHMARK_LABEL to identify what's being tried in this run (e.g. "sample-25",
+# "alpha-0.5"), e.g.: BENCHMARK_LABEL=sample-25 make benchmark
+# Both are attached as Allure parameters so different runs show up as distinct
+# results instead of collapsing into "retries" of the same question.
+RUN_LABEL = os.environ.get("BENCHMARK_LABEL", "default")
+RUN_TIMESTAMP = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+RUN_ID = f"{RUN_LABEL} @ {RUN_TIMESTAMP}"
 
 
 @pytest.fixture(scope="session")
@@ -55,7 +68,30 @@ def _seeded_agents(event_loop):
     event_loop.run_until_complete(seed_agents())
 
 
-async def _run_question(prompt: str) -> None:
+@dataclass
+class Pipeline:
+    runner: AgentRunner
+    ranker: RelevanceRanker
+    synthesizer: ResponseSynthesisAgent
+
+
+@pytest.fixture(scope="session")
+def pipeline() -> Pipeline:
+    """
+    Built once and reused for every question. EnrichmentAgent and
+    MultimodalNormalizer lazily load their models (a ~3B-parameter VLM and a
+    sentence-transformers encoder) on first use — one instance per question
+    means one model reload per question, which grows memory unboundedly over
+    a 20-question run until the OS OOM-kills the process.
+    """
+    normalizer = MultimodalNormalizer()
+    runner = AgentRunner(enrichment_agent=EnrichmentAgent(), normalizer=normalizer)
+    ranker = RelevanceRanker(normalizer=normalizer)
+    synthesizer = ResponseSynthesisAgent(ranker=ranker)
+    return Pipeline(runner=runner, ranker=ranker, synthesizer=synthesizer)
+
+
+async def _run_question(prompt: str, pipeline: Pipeline) -> None:
     with allure.step("Run thread"):
         thread, user_message, decomposed = await run_thread(thread_id=None, task_prompt=prompt)
         allure.attach(
@@ -89,7 +125,6 @@ async def _run_question(prompt: str) -> None:
         )
 
     with allure.step("Agent runner"):
-        runner = AgentRunner()
         artifact_summaries = []
 
         for job in jobs:
@@ -97,8 +132,8 @@ async def _run_question(prompt: str) -> None:
                 job=job, agent=job.agent, status=ExecutionStatus.PROCESSING
             )
             try:
-                artifact = await runner.invoke(job)
-                await runner.persist_artifact(job_status, artifact)
+                artifact = await pipeline.runner.invoke(job, sample=25)
+                await pipeline.runner.persist_artifact(job_status, artifact)
                 job_status.status = ExecutionStatus.COMPLETED
                 artifact_summaries.append({
                     "agent": job.agent.name,
@@ -123,7 +158,7 @@ async def _run_question(prompt: str) -> None:
         )
 
     with allure.step("Relevance ranking"):
-        ranked = await RelevanceRanker().rank(str(thread.id), prompt)
+        ranked = await pipeline.ranker.rank(str(thread.id), prompt)
         allure.attach(
             json.dumps(
                 [
@@ -145,7 +180,7 @@ async def _run_question(prompt: str) -> None:
         )
 
     with allure.step("Response synthesis"):
-        response = await ResponseSynthesisAgent().synthesize(str(thread.id), prompt)
+        response = await pipeline.synthesizer.synthesize(str(thread.id), prompt)
         allure.attach(response, name="Synthesized answer", attachment_type=allure.attachment_type.TEXT)
 
     assert response
@@ -153,9 +188,16 @@ async def _run_question(prompt: str) -> None:
 
 @allure.epic("MADRO")
 @pytest.mark.parametrize("question", QUESTIONS, ids=[q["id"] for q in QUESTIONS])
-def test_benchmark_question(question: dict, event_loop) -> None:
+def test_benchmark_question(question: dict, event_loop, pipeline: Pipeline) -> None:
     allure.dynamic.title(question["prompt"])
     allure.dynamic.feature(question["complexity"])
     allure.dynamic.story(question["id"])
     allure.dynamic.tag(question["complexity"])
-    event_loop.run_until_complete(_run_question(question["prompt"]))
+    allure.dynamic.parameter("approach", RUN_LABEL)
+    allure.dynamic.parameter("run_at", RUN_TIMESTAMP)
+    # Suites tree (independent of Behaviors above): run -> complexity -> question,
+    # since Allure has no single tree deeper than 3 levels.
+    allure.dynamic.parent_suite(RUN_ID)
+    allure.dynamic.suite(question["complexity"])
+    allure.dynamic.sub_suite(question["id"])
+    event_loop.run_until_complete(_run_question(question["prompt"], pipeline))
