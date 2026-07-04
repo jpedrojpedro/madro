@@ -152,9 +152,10 @@ async def _run_question(prompt: str) -> None:
 
 
 @allure.epic("MADRO")
-@allure.feature("Benchmark")
 @pytest.mark.parametrize("question", QUESTIONS, ids=[q["id"] for q in QUESTIONS])
 def test_benchmark_question(question: dict, event_loop) -> None:
     allure.dynamic.title(question["prompt"])
+    allure.dynamic.feature(question["complexity"])
     allure.dynamic.story(question["id"])
+    allure.dynamic.tag(question["complexity"])
     event_loop.run_until_complete(_run_question(question["prompt"]))

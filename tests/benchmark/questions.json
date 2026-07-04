@@ -1,10 +1,102 @@
 [
   {
-    "id": "q1",
-    "prompt": "Can you show me Italian restaurants and their respective location?"
+    "id": "Q01",
+    "complexity": "low (single-agent, textual)",
+    "prompt": "What restaurants are near me?"
   },
   {
-    "id": "q2",
-    "prompt": "Show me recent photos and menus from restaurants nearby, including any visible dishes or specials."
+    "id": "Q02",
+    "complexity": "low (single-agent, textual)",
+    "prompt": "Are there Italian restaurants nearby?"
+  },
+  {
+    "id": "Q03",
+    "complexity": "low (single-agent, textual)",
+    "prompt": "Which restaurants mention `pizza` in their profile?"
+  },
+  {
+    "id": "Q04",
+    "complexity": "low (single-agent, textual)",
+    "prompt": "What restaurants are open today?"
+  },
+  {
+    "id": "Q05",
+    "complexity": "low (single-agent, textual)",
+    "prompt": "Which nearby restaurants have more than 10k followers?"
+  },
+  {
+    "id": "Q06",
+    "complexity": "medium (multi-agent, textual)",
+    "prompt": "What Italian restaurants near me are popular on Instagram?"
+  },
+  {
+    "id": "Q07",
+    "complexity": "medium (multi-agent, textual)",
+    "prompt": "Which restaurants nearby post frequently about pasta?"
+  },
+  {
+    "id": "Q08",
+    "complexity": "medium (multi-agent, textual)",
+    "prompt": "What restaurants are followed by local food influencers?"
+  },
+  {
+    "id": "Q09",
+    "complexity": "medium (multi-agent, textual)",
+    "prompt": "Which restaurants similar to `Tutto Nhoque` are nearby?"
+  },
+  {
+    "id": "Q10",
+    "complexity": "medium (multi-agent, textual)",
+    "prompt": "What restaurants near me serve tomato-based dishes?"
+  },
+  {
+    "id": "Q11",
+    "complexity": "high (multi-modal, temporal)",
+    "prompt": "What Italian restaurants near me posted their menu this week?"
+  },
+  {
+    "id": "Q12",
+    "complexity": "high (multi-modal, temporal)",
+    "prompt": "What are Italian restaurants near me, and what dishes do they offer?"
+  },
+  {
+    "id": "Q13",
+    "complexity": "high (multi-modal, temporal)",
+    "prompt": "What Italian restaurants near me offer dishes with pancetta or prosciutto?"
+  },
+  {
+    "id": "Q14",
+    "complexity": "high (multi-modal, temporal)",
+    "prompt": "What are the prices of pasta dishes at nearby Italian restaurants?"
+  },
+  {
+    "id": "Q15",
+    "complexity": "high (multi-modal, temporal)",
+    "prompt": "Which restaurants posted daily specials yesterday?"
+  },
+  {
+    "id": "Q16",
+    "complexity": "out-of-scope (exception)",
+    "prompt": "What is the exact nutritional breakdown of dishes served nearby?"
+  },
+  {
+    "id": "Q17",
+    "complexity": "out-of-scope (exception)",
+    "prompt": "Which restaurants will introduce new menu items next month?"
+  },
+  {
+    "id": "Q18",
+    "complexity": "out-of-scope (exception)",
+    "prompt": "What restaurants have the best taste according to customers?"
+  },
+  {
+    "id": "Q19",
+    "complexity": "out-of-scope (exception)",
+    "prompt": "Which restaurant is objectively the best in town?"
+  },
+  {
+    "id": "Q20",
+    "complexity": "out-of-scope (exception)",
+    "prompt": "What restaurants comply with all local health regulations?"
   }
 ]
