@@ -2,7 +2,7 @@ from pydantic_ai import Agent
 from madro.models import Topic
 from madro.data_wrappers import DecomposedDemand
 from madro.internal_agents.system_prompts import DemandCategorizationAgentSP
-from madro.config import get_model
+from madro.config import get_model, run_agent
 
 
 async def decompose_demand(enriched_prompt: str) -> DecomposedDemand:
@@ -14,5 +14,5 @@ async def decompose_demand(enriched_prompt: str) -> DecomposedDemand:
         system_prompt=DemandCategorizationAgentSP.format(topic_names=", ".join(topic_names)),
     )
 
-    result = await agent.run(enriched_prompt)
+    result = await run_agent(agent, enriched_prompt)
     return result.output

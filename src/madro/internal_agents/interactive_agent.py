@@ -1,7 +1,7 @@
 from pydantic_ai import Agent
 from madro.data_wrappers import EnrichedPrompt
 from madro.internal_agents.system_prompts import InteractiveAgentSP
-from madro.config import get_model
+from madro.config import get_model, run_agent
 
 interactive_agent = Agent(
     model=get_model(),
@@ -11,5 +11,5 @@ interactive_agent = Agent(
 
 
 async def enrich_prompt(task_prompt: str) -> str:
-    result = await interactive_agent.run(task_prompt)
+    result = await run_agent(interactive_agent, task_prompt)
     return result.output.rewritten_prompt

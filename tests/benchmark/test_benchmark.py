@@ -132,7 +132,7 @@ async def _run_question(prompt: str, pipeline: Pipeline) -> None:
                 job=job, agent=job.agent, status=ExecutionStatus.PROCESSING
             )
             try:
-                artifact = await pipeline.runner.invoke(job, sample=25)
+                artifact = await pipeline.runner.invoke(job, sample=10)
                 await pipeline.runner.persist_artifact(job_status, artifact)
                 job_status.status = ExecutionStatus.COMPLETED
                 artifact_summaries.append({

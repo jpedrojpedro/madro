@@ -2,7 +2,7 @@ from pydantic_ai import Agent
 from madro.models import Agent as AgentModel, Topic, AgentTopic
 from madro.data_wrappers import TopicAssignment
 from madro.internal_agents.system_prompts import TopicCategorizationSP
-from madro.config import get_model
+from madro.config import get_model, run_agent
 
 
 categorization_agent = Agent(
@@ -19,7 +19,7 @@ def list_topics() -> list[dict]:
 
 async def categorize_and_assign(agent: AgentModel) -> list[Topic]:
     prompt = agent.to_yaml()
-    result = await categorization_agent.run(prompt)
+    result = await run_agent(categorization_agent, prompt)
     assignment: TopicAssignment = result.output
 
     topics: list[Topic] = []

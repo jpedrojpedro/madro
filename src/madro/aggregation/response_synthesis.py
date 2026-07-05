@@ -9,7 +9,7 @@ import json
 
 from pydantic_ai import Agent
 
-from madro.config import get_model
+from madro.config import get_model, run_agent
 from madro.aggregation.relevance_ranker import RelevanceRanker
 from madro.internal_agents.system_prompts import ResponseSynthesisSP
 
@@ -34,5 +34,5 @@ class ResponseSynthesisAgent:
             system_prompt=ResponseSynthesisSP.format(demand=demand, evidence=evidence),
         )
 
-        result = await agent.run(demand)
+        result = await run_agent(agent, demand)
         return result.output
