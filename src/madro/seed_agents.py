@@ -75,6 +75,25 @@ SEED_AGENTS: list[dict] = [
         "candidate_topics": ["image_retrieval", "media_retrieval"],
         "modality": "image",
     },
+    {
+        "name": "FollowerAnalysisFetcherAgent",
+        "description": (
+            "Fetches profiles matching a search demand via their biography that are followed by "
+            "influencer-tier profiles (profiles above a follower-count threshold), using the "
+            "Instagram follow graph. Useful for questions like 'what restaurants are followed by "
+            "influencers?'."
+        ),
+        "uri": "local://madro/retrieval_agents/follower_analysis_fetcher_agent",
+        "mcp_schema": {
+            "type": "object",
+            "properties": {
+                "sample": {"type": "integer", "description": "Max number of results to fetch", "default": 10},
+                "min_followers": {"type": "integer", "description": "Minimum follower count for a profile to be considered an influencer", "default": 10000},
+            },
+            "required": [],
+        },
+        "candidate_topics": ["follower_retrieval", "influencer_retrieval"],
+    },
 ]
 
 
