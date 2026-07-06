@@ -1,22 +1,13 @@
-import json
-
-
 class EntityResolver:
-    """Joins per-artifact canonical JSON records into entities by a shared key."""
+    """Joins per-artifact structured records (persisted in job_artifact.provenance_details)
+    into entities by a shared key."""
 
     def resolve(
-        self, lex_by_artifact: dict[str, tuple[float, str]]
+        self, lex_by_artifact: dict[str, tuple[float, list[dict]]]
     ) -> dict[str, tuple[list[str], dict]]:
-        parsed: dict[str, list[dict]] = {}
-        for artifact_id, (_, canonical_text) in lex_by_artifact.items():
-            try:
-                data = json.loads(canonical_text)
-                if isinstance(data, list):
-                    parsed[artifact_id] = data
-                else:
-                    parsed[artifact_id] = [data]
-            except (json.JSONDecodeError, TypeError):
-                parsed[artifact_id] = [{"_raw": canonical_text}]
+        parsed: dict[str, list[dict]] = {
+            artifact_id: records for artifact_id, (_, records) in lex_by_artifact.items()
+        }
 
         # Find common keys across all record sets
         all_key_sets = []

@@ -1,7 +1,7 @@
 from uuid import UUID
 import base64
 from typing import Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pydantic import BaseModel, Field, model_validator, field_validator
 
 
@@ -163,3 +163,4 @@ class NormalizedArtifact:
     lexical_index: LexicalIndex
     semantic_index: SemanticIndex
     provenance: dict
+    raw_records: list[dict] = field(default_factory=list)  # Pre-markdown structured records, for entity resolution

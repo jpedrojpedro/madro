@@ -156,4 +156,5 @@ class MultimodalNormalizer:
                 model=self.embedding_model
             ),
             provenance=records.provenance or {},
+            raw_records=records.text_content,
         )

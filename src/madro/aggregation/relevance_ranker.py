@@ -42,7 +42,7 @@ class RelevanceRanker:
             await cur.execute(
                 """
                 SELECT ja.job_status_id,
-                       ja.canonical_text,
+                       ja.provenance_details,
                        ts_rank(ja.lexical_vector, plainto_tsquery('english', %s), 32) AS lex_score
                 FROM broker.job_artifact ja
                 JOIN broker.job_status js ON js.id = ja.job_status_id
@@ -72,10 +72,11 @@ class RelevanceRanker:
             sem_rows = await cur.fetchall()
 
         # Group lexical scores by artifact
-        lex_by_artifact: dict[str, tuple[float, str]] = {}
+        lex_by_artifact: dict[str, tuple[float, list[dict]]] = {}
         for row in lex_rows:
-            artifact_id, canonical_text, lex_score = row
-            lex_by_artifact[str(artifact_id)] = (float(lex_score), canonical_text)
+            artifact_id, provenance_details, lex_score = row
+            records = (provenance_details or {}).get("records") or []
+            lex_by_artifact[str(artifact_id)] = (float(lex_score), records)
 
         # Group semantic scores by artifact — best chunk score per artifact
         sem_by_artifact: dict[str, float] = {}

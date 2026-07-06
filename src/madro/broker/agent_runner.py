@@ -81,7 +81,7 @@ class AgentRunner:
                 [
                     str(job_status.id),
                     artifact.canonical_text,
-                    json.dumps(artifact.provenance),
+                    json.dumps({**artifact.provenance, "records": artifact.raw_records}),
                     artifact.lexical_index.normalization,
                 ],
             )
