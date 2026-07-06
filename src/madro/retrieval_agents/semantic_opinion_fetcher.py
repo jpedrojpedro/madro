@@ -8,6 +8,7 @@ from typing import Optional
 class CommentSearchResult(BaseModel):
     comment_id: int = Field(description="The unique identifier of the comment.")
     publication_id: int = Field(description="The identifier of the publication this comment belongs to.")
+    publication_caption: Optional[str] = Field(default=None, description="The publication description text this comment belongs to.")
     profile_id: int = Field(description="The identifier of the profile that authored the comment.")
     comment: Optional[str] = Field(default=None, description="The text content/annotation of the comment.")
     num_likes: int = Field(default=0, description="The total number of likes this comment has received.")
@@ -32,16 +33,18 @@ class SemanticOpinionFetcherAgent(RetrievalAgent):
         params.append(sample)
 
         query = sql.SQL("""
-        SELECT id AS comment_id,
-               publication_id,
-               profile_id,
-               annotation AS comment,
-               num_likes,
-               published_at
-        FROM comment
-        WHERE reply_to IS NULL
+        SELECT c.id AS comment_id,
+               c.publication_id,
+               regexp_replace(p.description, '[\r\n]+', ' ', 'g') AS publication_caption,
+               c.profile_id,
+               c.annotation AS comment,
+               c.num_likes,
+               c.published_at
+        FROM comment c
+        INNER JOIN public.publication p on p.id = c.publication_id
+        WHERE c.reply_to IS NULL
           {date_filter}
-        ORDER BY published_at DESC, num_likes DESC
+        ORDER BY c.published_at DESC, c.num_likes DESC
         LIMIT %s
         """).format(date_filter=sql.SQL(" ").join(date_clauses))
         async with await self.connect() as conn:
@@ -53,6 +56,7 @@ class SemanticOpinionFetcherAgent(RetrievalAgent):
             CommentSearchResult(
                 comment_id=row["comment_id"],
                 publication_id=row["publication_id"],
+                publication_caption=row["publication_caption"],
                 profile_id=row["profile_id"],
                 comment=row["comment"],
                 num_likes=row["num_likes"],

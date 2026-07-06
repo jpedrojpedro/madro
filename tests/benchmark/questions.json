@@ -2,77 +2,77 @@
   {
     "id": "Q01",
     "complexity": "low (single-agent, textual)",
-    "prompt": "What restaurants are near me?"
+    "prompt": "What restaurants are near Balneário Camboriú?"
   },
   {
     "id": "Q02",
     "complexity": "low (single-agent, textual)",
-    "prompt": "Are there Italian restaurants nearby?"
+    "prompt": "Are there any Italian restaurants in Rio de Janeiro?"
   },
   {
     "id": "Q03",
     "complexity": "low (single-agent, textual)",
-    "prompt": "Which restaurants mention `pizza` in their profile?"
+    "prompt": "Which restaurants mention pizza in their profile?"
   },
   {
     "id": "Q04",
     "complexity": "low (single-agent, textual)",
-    "prompt": "What restaurants are open today?"
+    "prompt": "What restaurants are open on Wednesdays?"
   },
   {
     "id": "Q05",
     "complexity": "low (single-agent, textual)",
-    "prompt": "Which nearby restaurants have more than 10k followers?"
+    "prompt": "Which restaurants in São Paulo have more than 10k followers?"
   },
   {
     "id": "Q06",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "What Italian restaurants near me are popular on Instagram?"
+    "prompt": "What Italian restaurants in São Paulo are popular on Instagram?"
   },
   {
     "id": "Q07",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Which restaurants nearby post frequently about pasta?"
+    "prompt": "Which restaurants in Balneário Camboriú post frequently about pasta?"
   },
   {
     "id": "Q08",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "What restaurants are followed by local food influencers?"
+    "prompt": "What restaurants are followed by influencers?"
   },
   {
     "id": "Q09",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Which restaurants similar to `Tutto Nhoque` are nearby?"
+    "prompt": "Which restaurants are similar to Tutto Nhoque?"
   },
   {
     "id": "Q10",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "What restaurants near me serve tomato-based dishes?"
+    "prompt": "What restaurants serve fish dishes?"
   },
   {
     "id": "Q11",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What Italian restaurants near me posted their menu this week?"
+    "prompt": "What Italian restaurants published their menu in 2025?"
   },
   {
     "id": "Q12",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What are Italian restaurants near me, and what dishes do they offer?"
+    "prompt": "What are Japanese restaurants main offered dishes?"
   },
   {
     "id": "Q13",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What Italian restaurants near me offer dishes with pancetta or prosciutto?"
+    "prompt": "What Italian restaurants offer dishes with pancetta or prosciutto?"
   },
   {
     "id": "Q14",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What are the prices of pasta dishes at nearby Italian restaurants?"
+    "prompt": "What are the average prices of dishes at São Paulo?"
   },
   {
     "id": "Q15",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "Which restaurants posted daily specials yesterday?"
+    "prompt": "Which restaurants posted daily specials in 2025?"
   },
   {
     "id": "Q16",
@@ -102,6 +102,6 @@
   {
     "id": "Q21",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "Semantically speaking, how are the comments related to `haight_clothing` account?"
+    "prompt": "What is the perception of haight_clothing profile based on comments?"
   }
 ]

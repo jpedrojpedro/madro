@@ -8,6 +8,8 @@ class ProfileFetcherResult(BaseModel):
     profile_id: int = Field(description="The unique identifier of the user profile.")
     profile_full_name: str = Field(description="The complete name of the profile owner.")
     profile_bio: Optional[str] = Field(default=None, description="The profile biography description.")
+    profile_num_medias: int = Field(default=0, description="The total number of publications shared by this profile.")
+    profile_num_followers: int = Field(default=0, description="The total number of followers this profile has.")
     rnk: float = Field(description="Postgres ts_rank full-text search score – between 0 and 1.")
 
 
@@ -27,11 +29,13 @@ class ProfileFetcherAgent(RetrievalAgent):
                 )
           ) AS query
         )
-        SELECT id as profile_id,
-               full_name as profile_full_name,
-               regexp_replace(biography, '[\r\n]+', ' ', 'g') as profile_bio,
+        SELECT p.id as profile_id,
+               p.full_name as profile_full_name,
+               regexp_replace(p.biography, '[\r\n]+', ' ', 'g') as profile_bio,
+               p.num_medias as profile_num_medias,
+               p.num_followers as profile_num_followers,
                ts_rank(biography_lexemes, query, 32) as rnk
-        FROM public.profile, search_setup
+        FROM public.profile p, search_setup
         WHERE biography_lexemes @@ query
         ORDER BY rnk DESC
         LIMIT %s
@@ -46,6 +50,8 @@ class ProfileFetcherAgent(RetrievalAgent):
                 profile_id=row["profile_id"],
                 profile_full_name=row["profile_full_name"],
                 profile_bio=row["profile_bio"],
+                profile_num_medias=row["profile_num_medias"],
+                profile_num_followers=row["profile_num_followers"],
                 rnk=row["rnk"],
             ).model_dump(mode="json")
             for row in rows

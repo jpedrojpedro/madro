@@ -8,7 +8,9 @@ class PublicationSearchResult(BaseModel):
     publication_id: int = Field(description="The unique identifier of the publication.")
     profile_id: int = Field(description="The identifier of the profile associated with the publication (either the collaborator or the primary author).")
     profile_full_name: str = Field(description="The name of the profile owner (resolved from either the collaborator or primary author profile).")
-    publication_caption: Optional[str] = Field(default=None,description="The publication description text.")
+    publication_caption: Optional[str] = Field(default=None, description="The publication description text.")
+    publication_num_likes: int = Field(default=0, description="The total number of likes this publication has received.")
+    publication_num_comments: int = Field(default=0, description="The total number of comments this publication has received.")
     rnk: float = Field(description="Postgres ts_rank full-text search score – between 0 and 1.")
 
 
@@ -30,8 +32,10 @@ class PublicationFetcherAgent(RetrievalAgent):
         ), publication_results AS (
             SELECT p.id,
                    p.profile_id,
-                  regexp_replace(p.description, '[\r\n]+', ' ', 'g') as desc_,
-                  ts_rank(p.description_lexemes, query, 32) as rnk
+                   p.num_likes,
+                   p.num_comments,
+                   regexp_replace(p.description, '[\r\n]+', ' ', 'g') as desc_,
+                   ts_rank(p.description_lexemes, query, 32) as rnk
            FROM public.publication p,
                 search_setup
            WHERE p.description_lexemes @@ query
@@ -41,8 +45,10 @@ class PublicationFetcherAgent(RetrievalAgent):
         SELECT
             pr.id as publication_id,
             coalesce(pc.profile_id, pr.profile_id) as profile_id,
-            coalesce(pf.full_name, pf2.full_name) as full_name,
+            coalesce(pf.full_name, pf2.full_name) as profile_full_name,
             pr.desc_ as publication_caption,
+            pr.num_likes as publication_num_likes,
+            pr.num_comments as publication_num_comments,
             pr.rnk
         FROM publication_results pr
         LEFT JOIN public.publication_collab pc ON pr.id = pc.publication_id
@@ -60,8 +66,10 @@ class PublicationFetcherAgent(RetrievalAgent):
             PublicationSearchResult(
                 publication_id=row["publication_id"],
                 profile_id=row["profile_id"],
-                profile_full_name=row["full_name"],
+                profile_full_name=row["profile_full_name"],
                 publication_caption=row["publication_caption"],
+                publication_num_likes=row["publication_num_likes"],
+                publication_num_comments=row["publication_num_comments"],
                 rnk=row["rnk"]
             ).model_dump(mode="json")
             for row in rows
