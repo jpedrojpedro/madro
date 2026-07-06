@@ -8,7 +8,7 @@ entities, synthesized answer, etc.) to the Allure report for manual
 comparison across runs.
 
 Run with:
-    make benchmark
+    make benchmark SAMPLE=25 FUSION_LEX=0.3 FUSION_SEM=0.7
 
 pytest-django is intentionally disabled for this run (see Makefile: `-p no:django`)
 because this suite hits the real dev databases directly — see
@@ -38,11 +38,16 @@ pytestmark = pytest.mark.benchmark
 
 QUESTIONS = json.loads((Path(__file__).parent / "questions.json").read_text())
 
-# Set BENCHMARK_LABEL to identify what's being tried in this run (e.g. "sample-25",
-# "alpha-0.5"), e.g.: BENCHMARK_LABEL=sample-25 make benchmark
-# Both are attached as Allure parameters so different runs show up as distinct
+# Set by the `make benchmark SAMPLE=... FUSION_LEX=... FUSION_SEM=...` target —
+# mandatory, so this raises a clear KeyError if run outside that target.
+SAMPLE = int(os.environ["BENCHMARK_SAMPLE"])
+ALPHA = float(os.environ["BENCHMARK_ALPHA"])
+BETA = float(os.environ["BENCHMARK_BETA"])
+
+# The run's label is built from those args (rather than set manually) and
+# attached as Allure parameters, so different runs show up as distinct
 # results instead of collapsing into "retries" of the same question.
-RUN_LABEL = os.environ.get("BENCHMARK_LABEL", "default")
+RUN_LABEL = f"sample-{SAMPLE}_alpha-{ALPHA}_beta-{BETA}"
 RUN_TIMESTAMP = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 RUN_ID = f"{RUN_LABEL} @ {RUN_TIMESTAMP}"
 
@@ -86,7 +91,7 @@ def pipeline() -> Pipeline:
     """
     normalizer = MultimodalNormalizer()
     runner = AgentRunner(enrichment_agent=EnrichmentAgent(), normalizer=normalizer)
-    ranker = RelevanceRanker(normalizer=normalizer)
+    ranker = RelevanceRanker(alpha=ALPHA, beta=BETA, normalizer=normalizer)
     synthesizer = ResponseSynthesisAgent(ranker=ranker)
     return Pipeline(runner=runner, ranker=ranker, synthesizer=synthesizer)
 
@@ -132,7 +137,7 @@ async def _run_question(prompt: str, pipeline: Pipeline) -> None:
                 job=job, agent=job.agent, status=ExecutionStatus.PROCESSING
             )
             try:
-                artifact = await pipeline.runner.invoke(job, sample=10)
+                artifact = await pipeline.runner.invoke(job, sample=SAMPLE)
                 await pipeline.runner.persist_artifact(job_status, artifact)
                 job_status.status = ExecutionStatus.COMPLETED
                 artifact_summaries.append({
