@@ -18,8 +18,16 @@ class PublicationFetcherAgent(RetrievalAgent):
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample") if kwargs.get("sample") else 10
+        username = kwargs.get("username")
+
+        # mentioned_profile resolves an explicit @username mention (if any) to
+        # its profile id, so that profile's publications are folded into the
+        # lexical results and bumped to the top instead of relying solely on
+        # the caption text matching the demand.
         query = sql.SQL("""
-        WITH search_setup AS (
+        WITH mentioned_profile AS (
+            SELECT id FROM public.profile WHERE username = %s
+        ), search_setup AS (
             SELECT to_tsquery(
                 'english',
                 array_to_string(
@@ -35,11 +43,13 @@ class PublicationFetcherAgent(RetrievalAgent):
                    coalesce(p.num_likes, 0) as num_likes,
                    coalesce(p.num_comments, 0) as num_comments,
                    regexp_replace(p.description, '[\r\n]+', ' ', 'g') as desc_,
-                   ts_rank(p.description_lexemes, query, 32) as rnk
+                   ts_rank(p.description_lexemes, query, 32) as rnk,
+                   (p.profile_id = (SELECT id FROM mentioned_profile)) as is_mentioned
            FROM public.publication p,
                 search_setup
            WHERE p.description_lexemes @@ query
-            ORDER BY rnk DESC
+              OR p.profile_id = (SELECT id FROM mentioned_profile)
+            ORDER BY is_mentioned DESC, rnk DESC
             LIMIT 50
         )
         SELECT
@@ -54,12 +64,12 @@ class PublicationFetcherAgent(RetrievalAgent):
         LEFT JOIN public.publication_collab pc ON pr.id = pc.publication_id
         LEFT JOIN public.profile pf ON pc.profile_id = pf.id
         LEFT JOIN public.profile pf2 ON pr.profile_id = pf2.id
-        ORDER BY rnk DESC
+        ORDER BY pr.is_mentioned DESC, pr.rnk DESC
         LIMIT %s
         """)
         async with await self.connect() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(query, (demand, sample))
+                await cur.execute(query, (username, demand, sample))
                 rows = await cur.fetchall()
 
         return [

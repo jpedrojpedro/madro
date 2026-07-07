@@ -17,8 +17,17 @@ class ProfileFetcherAgent(RetrievalAgent):
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample") if kwargs.get("sample") else 10
+        username = kwargs.get("username")
+
+        # mentioned_profile resolves an explicit @username mention (if any) to
+        # its profile id — an empty CTE (no mention) makes every comparison
+        # against it NULL, so the lexical search below is unaffected; when it
+        # does resolve, that profile is folded into the results and bumped to
+        # the top instead of relying solely on a bio-text match.
         query = sql.SQL("""
-        WITH search_setup AS (
+        WITH mentioned_profile AS (
+            SELECT id FROM public.profile WHERE username = %s
+        ), search_setup AS (
             SELECT to_tsquery(
                 'english',
                 array_to_string(
@@ -37,12 +46,13 @@ class ProfileFetcherAgent(RetrievalAgent):
                ts_rank(biography_lexemes, query, 32) as rnk
         FROM public.profile p, search_setup
         WHERE biography_lexemes @@ query
-        ORDER BY rnk DESC
+           OR p.id = (SELECT id FROM mentioned_profile)
+        ORDER BY (p.id = (SELECT id FROM mentioned_profile)) DESC, rnk DESC
         LIMIT %s
         """)
         async with await self.connect() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(query, (demand, sample))
+                await cur.execute(query, (username, demand, sample))
                 rows = await cur.fetchall()
 
         return [

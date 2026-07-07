@@ -22,9 +22,16 @@ class FollowerAnalysisFetcherAgent(RetrievalAgent):
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample") if kwargs.get("sample") else 10
         min_followers = kwargs.get("min_followers") if kwargs.get("min_followers") else 10000
+        username = kwargs.get("username")
 
+        # mentioned_profile resolves an explicit @username mention (if any) to
+        # its profile id, so the matched (destination) profile is pinned to
+        # that account and bumped to the top instead of relying solely on a
+        # bio-text match.
         query = sql.SQL("""
-        WITH search_setup AS (
+        WITH mentioned_profile AS (
+            SELECT id FROM public.profile WHERE username = %s
+        ), search_setup AS (
             SELECT to_tsquery(
                 'english',
                 array_to_string(
@@ -49,13 +56,13 @@ class FollowerAnalysisFetcherAgent(RetrievalAgent):
         CROSS JOIN search_setup
         WHERE pr.edge = 'follows'
           AND f.num_followers >= %s
-          AND p.biography_lexemes @@ query
-        ORDER BY rnk DESC, f.num_followers DESC
+          AND (p.biography_lexemes @@ query OR p.id = (SELECT id FROM mentioned_profile))
+        ORDER BY (p.id = (SELECT id FROM mentioned_profile)) DESC, rnk DESC, f.num_followers DESC
         LIMIT %s
         """)
         async with await self.connect() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(query, (demand, min_followers, sample))
+                await cur.execute(query, (username, demand, min_followers, sample))
                 rows = await cur.fetchall()
 
         return [

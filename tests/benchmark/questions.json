@@ -102,7 +102,7 @@
   {
     "id": "Q21",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What is the perception of haight_clothing profile based on comments?"
+    "prompt": "What is the perception of @haight_clothing profile based on comments?"
   },
   {
     "id": "Q22",
@@ -112,72 +112,72 @@
   {
     "id": "Q23",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Does the haight_clothing profile sell online?"
+    "prompt": "Does the @haight_clothing profile sell online?"
   },
   {
     "id": "Q24",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Which influencers follow the haight_clothing brand?"
+    "prompt": "Which influencers follow the @haight_clothing brand?"
   },
   {
     "id": "Q25",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Which post from the haight_clothing profile had the highest engagement?"
+    "prompt": "Which post from the @haight_clothing profile had the highest engagement?"
   },
   {
     "id": "Q26",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "Has there been any recent crisis or complaints from Fluminense FC's fanbase?"
+    "prompt": "Has there been any recent crisis or complaints from @fluminensefc fanbase?"
   },
   {
     "id": "Q27",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What was Fluminense FC's last match?"
+    "prompt": "What was @fluminensefc last match?"
   },
   {
     "id": "Q28",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "Who is Fluminense FC's most beloved player?"
+    "prompt": "Who is @fluminensefc most beloved player?"
   },
   {
     "id": "Q29",
     "complexity": "low (single-agent, textual)",
-    "prompt": "How do I become an official member (sócio-torcedor) of Fluminense FC?"
+    "prompt": "How do I become an official member (sócio-torcedor) of @fluminensefc?"
   },
   {
     "id": "Q30",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "Which post did people find funniest from broxadasinistra?"
+    "prompt": "Which post did people find funniest from @broxadasinistra?"
   },
   {
     "id": "Q31",
     "complexity": "low (single-agent, textual)",
-    "prompt": "What are the main topics covered in broxadasinistra's publications?"
+    "prompt": "What are the main topics covered in @broxadasinistra publications?"
   },
   {
     "id": "Q32",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What are the main criticisms of broxadasinistra's publications?"
+    "prompt": "What are the main criticisms of @broxadasinistra publications?"
   },
   {
     "id": "Q33",
     "complexity": "out-of-scope (exception)",
-    "prompt": "Was any comment on broxadasinistra's publications flagged for any kind of intolerance (racial, gender-based, or religious)?"
+    "prompt": "Was any comment on @broxadasinistra publications flagged for any kind of intolerance (racial, gender-based, or religious)?"
   },
   {
     "id": "Q34",
     "complexity": "low (single-agent, textual)",
-    "prompt": "What is the best fitness tip given by the eusougabriela profile?"
+    "prompt": "What is the best fitness tip given by the @eusougabriela profile?"
   },
   {
     "id": "Q35",
     "complexity": "low (single-agent, textual)",
-    "prompt": "What are the best lifestyle tips given by the eusougabriela profile?"
+    "prompt": "What are the best lifestyle tips given by the @eusougabriela profile?"
   },
   {
     "id": "Q36",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What are the biggest criticisms of the content published by the eusougabriela profile?"
+    "prompt": "What are the biggest criticisms of the content published by the @eusougabriela profile?"
   },
   {
     "id": "Q37",
@@ -227,7 +227,7 @@
   {
     "id": "Q46",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Which profiles similar to eusougabriela focus on fitness content?"
+    "prompt": "Which profiles similar to @eusougabriela focus on fitness content?"
   },
   {
     "id": "Q47",

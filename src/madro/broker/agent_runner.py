@@ -1,4 +1,5 @@
 import logging
+import re
 import asyncio
 from asgiref.sync import sync_to_async
 from madro.db import async_cursor
@@ -99,13 +100,29 @@ class AgentRunner:
                     [str(job_status.id), idx, chunk, vector_literal],
                 )
 
+    _MENTION_RE = re.compile(r"@(\w+(?:\.\w+)*)")
+
+    @classmethod
+    def _extract_mentioned_username(cls, demand: str) -> tuple[str, str | None]:
+        """Splits an explicit `@username` profile mention out of the demand text
+        (e.g. "perception of @haight_clothing" -> ("perception of", "haight_clothing")),
+        so retrieval agents can filter by an exact profile match instead of relying
+        on lexical/text search to surface the handle by coincidence."""
+        match = cls._MENTION_RE.search(demand)
+        if not match:
+            return demand, None
+        cleaned = (demand[:match.start()] + demand[match.end():]).strip()
+        return cleaned, match.group(1)
+
     async def invoke(self, job: JobExecution, sample: int = 10) -> NormalizedArtifact:
         agent: Agent = job.agent
+        demand, username = self._extract_mentioned_username(job.demand.content)
         payload = {
             "job_id": str(job.job_id),
-            "demand": job.demand.content,
+            "demand": demand,
             "schema": agent.mcp_schema,
             "sample": sample,
+            "username": username,
         }
 
         raw = None

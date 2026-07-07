@@ -19,8 +19,13 @@ class ImageFetcherAgent(RetrievalAgent):
         sample = kwargs.get("sample") or 10
         date_from = kwargs.get("date_from")
         date_to = kwargs.get("date_to")
+        username = kwargs.get("username")
 
-        params = [demand, ['jpg']]
+        # mentioned_profile resolves an explicit @username mention (if any) to
+        # its profile id, so that profile's images are folded into the
+        # lexical results and bumped to the top instead of relying solely on
+        # the caption text matching the demand.
+        params = [username, demand, ['jpg']]
         date_clauses = []
         if date_from:
             date_clauses.append(sql.SQL("AND p.published_at >= %s"))
@@ -31,7 +36,9 @@ class ImageFetcherAgent(RetrievalAgent):
         params.append(sample)
 
         query = sql.SQL("""
-        WITH search_setup AS (
+        WITH mentioned_profile AS (
+            SELECT id FROM public.profile WHERE username = %s
+        ), search_setup AS (
             SELECT to_tsquery(
                 'english',
                 array_to_string(
@@ -41,7 +48,7 @@ class ImageFetcherAgent(RetrievalAgent):
                     ' | '
                 )
           ) AS query
-        )        
+        )
         SELECT rf.publication_id,
                rf.position,
                rf.extension,
@@ -53,9 +60,9 @@ class ImageFetcherAgent(RetrievalAgent):
         JOIN public.publication p ON rf.publication_id = p.id
         WHERE rf.data IS NOT NULL
           AND rf.extension = ANY(%s::file_extension[])
-          AND p.description_lexemes @@ ss.query
+          AND (p.description_lexemes @@ ss.query OR p.profile_id = (SELECT id FROM mentioned_profile))
           {date_filter}
-        ORDER BY rnk DESC, p.published_at DESC, rf.position ASC
+        ORDER BY (p.profile_id = (SELECT id FROM mentioned_profile)) DESC, rnk DESC, p.published_at DESC, rf.position ASC
         LIMIT %s
         """).format(date_filter=sql.SQL(" ").join(date_clauses))
         async with await self.connect() as conn:

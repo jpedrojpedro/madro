@@ -21,8 +21,13 @@ class SemanticOpinionFetcherAgent(RetrievalAgent):
         sample = kwargs.get("sample") or 10
         date_from = kwargs.get("date_from")
         date_to = kwargs.get("date_to")
+        username = kwargs.get("username")
 
-        params = []
+        # mentioned_profile resolves an explicit @username mention (if any) to
+        # its profile id, so comments on that profile's publications are
+        # bumped to the top — this agent has no other content-relevance
+        # filter today, it otherwise just returns the most recent comments.
+        params = [username]
         date_clauses = []
         if date_from:
             date_clauses.append(sql.SQL("AND published_at >= %s"))
@@ -33,6 +38,9 @@ class SemanticOpinionFetcherAgent(RetrievalAgent):
         params.append(sample)
 
         query = sql.SQL("""
+        WITH mentioned_profile AS (
+            SELECT id FROM public.profile WHERE username = %s
+        )
         SELECT c.id AS comment_id,
                c.publication_id,
                regexp_replace(p.description, '[\r\n]+', ' ', 'g') AS publication_caption,
@@ -44,7 +52,7 @@ class SemanticOpinionFetcherAgent(RetrievalAgent):
         INNER JOIN public.publication p on p.id = c.publication_id
         WHERE c.reply_to IS NULL
           {date_filter}
-        ORDER BY c.published_at DESC, c.num_likes DESC
+        ORDER BY (p.profile_id = (SELECT id FROM mentioned_profile)) DESC, c.published_at DESC, c.num_likes DESC
         LIMIT %s
         """).format(date_filter=sql.SQL(" ").join(date_clauses))
         async with await self.connect() as conn:
