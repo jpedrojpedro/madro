@@ -37,8 +37,10 @@ class EntityResolver:
                             entities[eid][0].append(artifact_id)
                         entities[eid] = (entities[eid][0], {**entities[eid][1], **record})
         else:
-            # No join key found — each artifact is its own entity
+            # No join key found — each record is its own entity (an artifact may
+            # hold many rows, e.g. all publications matched by one agent call)
             for artifact_id, records in parsed.items():
-                entities[artifact_id] = ([artifact_id], records[0] if records else {})
+                for idx, record in enumerate(records):
+                    entities[f"{artifact_id}:{idx}"] = ([artifact_id], record)
 
         return entities
