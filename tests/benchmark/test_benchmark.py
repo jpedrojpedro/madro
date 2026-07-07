@@ -38,6 +38,16 @@ pytestmark = pytest.mark.benchmark
 
 QUESTIONS = json.loads((Path(__file__).parent / "questions.json").read_text())
 
+# Set by `make benchmark ... K="34 to 50"` to resume a run that stopped
+# partway through — slices QUESTIONS to the inclusive id range instead of
+# running the full set.
+_question_range = os.environ.get("BENCHMARK_QUESTION_RANGE")
+if _question_range:
+    _start, _, _end = _question_range.partition(" to ")
+    _start, _end = int(_start), int(_end.strip() or _start)
+    _wanted_ids = {f"Q{n:02d}" for n in range(_start, _end + 1)}
+    QUESTIONS = [q for q in QUESTIONS if q["id"] in _wanted_ids]
+
 # Set by the `make benchmark SAMPLE=... FUSION_LEX=... FUSION_SEM=...` target —
 # mandatory, so this raises a clear KeyError if run outside that target.
 SAMPLE = int(os.environ["BENCHMARK_SAMPLE"])
@@ -48,7 +58,11 @@ BETA = float(os.environ["BENCHMARK_BETA"])
 # attached as Allure parameters, so different runs show up as distinct
 # results instead of collapsing into "retries" of the same question.
 RUN_LABEL = f"sample-{SAMPLE}_alpha-{ALPHA}_beta-{BETA}"
-RUN_TIMESTAMP = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+# Overridable so a resumed/continued run (e.g. after an OOM kill, re-run with
+# `-k` selecting only the remaining questions) can reuse the original
+# timestamp and land back in the same Allure parent_suite instead of opening
+# a new one.
+RUN_TIMESTAMP = os.environ.get("BENCHMARK_RUN_TIMESTAMP") or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 RUN_ID = f"{RUN_LABEL} @ {RUN_TIMESTAMP}"
 
 
