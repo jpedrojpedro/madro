@@ -32,8 +32,8 @@ class ProfileFetcherAgent(RetrievalAgent):
         SELECT p.id as profile_id,
                p.full_name as profile_full_name,
                regexp_replace(p.biography, '[\r\n]+', ' ', 'g') as profile_bio,
-               p.num_medias as profile_num_medias,
-               p.num_followers as profile_num_followers,
+               coalesce(p.num_medias, 0) as profile_num_medias,
+               coalesce(p.num_followers, 0) as profile_num_followers,
                ts_rank(biography_lexemes, query, 32) as rnk
         FROM public.profile p, search_setup
         WHERE biography_lexemes @@ query

@@ -41,7 +41,7 @@ class FollowerAnalysisFetcherAgent(RetrievalAgent):
                p.num_followers as profile_num_followers,
                f.id as follower_profile_id,
                f.full_name as follower_full_name,
-               f.num_followers as follower_num_followers,
+               coalesce(f.num_followers, 0) as follower_num_followers,
                ts_rank(p.biography_lexemes, query, 32) as rnk
         FROM public.profile_relationship pr
         JOIN public.profile p ON p.id = pr.destination_profile_id

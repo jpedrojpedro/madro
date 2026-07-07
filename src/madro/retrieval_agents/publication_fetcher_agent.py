@@ -32,8 +32,8 @@ class PublicationFetcherAgent(RetrievalAgent):
         ), publication_results AS (
             SELECT p.id,
                    p.profile_id,
-                   p.num_likes,
-                   p.num_comments,
+                   coalesce(p.num_likes, 0) as num_likes,
+                   coalesce(p.num_comments, 0) as num_comments,
                    regexp_replace(p.description, '[\r\n]+', ' ', 'g') as desc_,
                    ts_rank(p.description_lexemes, query, 32) as rnk
            FROM public.publication p,

@@ -38,7 +38,7 @@ class SemanticOpinionFetcherAgent(RetrievalAgent):
                regexp_replace(p.description, '[\r\n]+', ' ', 'g') AS publication_caption,
                c.profile_id,
                c.annotation AS comment,
-               c.num_likes,
+               coalesce(c.num_likes, 0) as num_likes,
                c.published_at
         FROM comment c
         INNER JOIN public.publication p on p.id = c.publication_id
