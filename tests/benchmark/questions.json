@@ -103,5 +103,150 @@
     "id": "Q21",
     "complexity": "high (multi-modal, temporal)",
     "prompt": "What is the perception of haight_clothing profile based on comments?"
+  },
+  {
+    "id": "Q22",
+    "complexity": "out-of-scope (exception)",
+    "prompt": "What clothing items are most suitable for a beach wedding?"
+  },
+  {
+    "id": "Q23",
+    "complexity": "medium (multi-agent, textual)",
+    "prompt": "Does the haight_clothing profile sell online?"
+  },
+  {
+    "id": "Q24",
+    "complexity": "medium (multi-agent, textual)",
+    "prompt": "Which influencers follow the haight_clothing brand?"
+  },
+  {
+    "id": "Q25",
+    "complexity": "medium (multi-agent, textual)",
+    "prompt": "Which post from the haight_clothing profile had the highest engagement?"
+  },
+  {
+    "id": "Q26",
+    "complexity": "high (multi-modal, temporal)",
+    "prompt": "Has there been any recent crisis or complaints from Fluminense FC's fanbase?"
+  },
+  {
+    "id": "Q27",
+    "complexity": "high (multi-modal, temporal)",
+    "prompt": "What was Fluminense FC's last match?"
+  },
+  {
+    "id": "Q28",
+    "complexity": "high (multi-modal, temporal)",
+    "prompt": "Who is Fluminense FC's most beloved player?"
+  },
+  {
+    "id": "Q29",
+    "complexity": "low (single-agent, textual)",
+    "prompt": "How do I become an official member (sócio-torcedor) of Fluminense FC?"
+  },
+  {
+    "id": "Q30",
+    "complexity": "high (multi-modal, temporal)",
+    "prompt": "Which post did people find funniest from broxadasinistra?"
+  },
+  {
+    "id": "Q31",
+    "complexity": "low (single-agent, textual)",
+    "prompt": "What are the main topics covered in broxadasinistra's publications?"
+  },
+  {
+    "id": "Q32",
+    "complexity": "high (multi-modal, temporal)",
+    "prompt": "What are the main criticisms of broxadasinistra's publications?"
+  },
+  {
+    "id": "Q33",
+    "complexity": "out-of-scope (exception)",
+    "prompt": "Was any comment on broxadasinistra's publications flagged for any kind of intolerance (racial, gender-based, or religious)?"
+  },
+  {
+    "id": "Q34",
+    "complexity": "low (single-agent, textual)",
+    "prompt": "What is the best fitness tip given by the eusougabriela profile?"
+  },
+  {
+    "id": "Q35",
+    "complexity": "low (single-agent, textual)",
+    "prompt": "What are the best lifestyle tips given by the eusougabriela profile?"
+  },
+  {
+    "id": "Q36",
+    "complexity": "high (multi-modal, temporal)",
+    "prompt": "What are the biggest criticisms of the content published by the eusougabriela profile?"
+  },
+  {
+    "id": "Q37",
+    "complexity": "out-of-scope (exception)",
+    "prompt": "Which profile has the most followers in common with others?"
+  },
+  {
+    "id": "Q38",
+    "complexity": "out-of-scope (exception)",
+    "prompt": "Taking the comments into account, which profile suffers the most hate attacks?"
+  },
+  {
+    "id": "Q39",
+    "complexity": "medium (multi-agent, textual)",
+    "prompt": "I need to promote a high-end women's clothing brand — could you recommend profiles that fit that description?"
+  },
+  {
+    "id": "Q40",
+    "complexity": "low (single-agent, textual)",
+    "prompt": "Which restaurants are located in Florianópolis?"
+  },
+  {
+    "id": "Q41",
+    "complexity": "low (single-agent, textual)",
+    "prompt": "Do any profiles mention vegan options in their biography?"
+  },
+  {
+    "id": "Q42",
+    "complexity": "low (single-agent, textual)",
+    "prompt": "Which restaurants have more than 5k followers?"
+  },
+  {
+    "id": "Q43",
+    "complexity": "low (single-agent, textual)",
+    "prompt": "Which restaurants mention sushi in their profile?"
+  },
+  {
+    "id": "Q44",
+    "complexity": "medium (multi-agent, textual)",
+    "prompt": "Which steakhouses in Curitiba are most discussed in the comments?"
+  },
+  {
+    "id": "Q45",
+    "complexity": "medium (multi-agent, textual)",
+    "prompt": "Which bakeries are followed by influencers?"
+  },
+  {
+    "id": "Q46",
+    "complexity": "medium (multi-agent, textual)",
+    "prompt": "Which profiles similar to eusougabriela focus on fitness content?"
+  },
+  {
+    "id": "Q47",
+    "complexity": "medium (multi-agent, textual)",
+    "prompt": "Which restaurant's seafood posts receive the most comments?"
+  },
+  {
+    "id": "Q48",
+    "complexity": "out-of-scope (exception)",
+    "prompt": "Which restaurant will go viral next month?"
+  },
+  {
+    "id": "Q49",
+    "complexity": "out-of-scope (exception)",
+    "prompt": "What is the healthiest restaurant option according to medical guidelines?"
+  },
+  {
+    "id": "Q50",
+    "complexity": "out-of-scope (exception)",
+    "prompt": "Which restaurant owner has the best personality?"
   }
 ]

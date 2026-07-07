@@ -91,7 +91,13 @@ class EnrichmentAgent:
 
         output_ids = model.generate(**inputs, max_new_tokens=self.max_new_tokens)
         trimmed = output_ids[0][len(inputs.input_ids[0]):]
-        return processor.decode(trimmed, skip_special_tokens=True)
+        result = processor.decode(trimmed, skip_special_tokens=True)
+
+        del inputs, output_ids, trimmed
+        if torch.backends.mps.is_available():
+            torch.mps.empty_cache()
+
+        return result
 
     def _process_image_sync(self, b64_string: str) -> dict[str, str]:
         """Synchronous decoding, resizing, and double-pass inference executor."""
