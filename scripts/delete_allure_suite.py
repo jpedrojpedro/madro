@@ -10,7 +10,7 @@ references one of the target suite's test UUIDs.
 
 Usage:
     poetry run python scripts/delete_allure_suite.py --suite "sample-10_alpha-0.5_beta-0.5 @ 2026-07-07T04:08:32Z"
-    poetry run python scripts/delete_allure_suite.py --suite "baseline" --yes
+    poetry run python scripts/delete_allure_suite.py --suite "Baseline_qwen2.5-coder @ 2026-07-11T14:32:00Z" --yes
 """
 
 import argparse

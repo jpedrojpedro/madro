@@ -5,24 +5,32 @@ SQL baseline's Allure results — both already sitting in allure-results/, so
 this never re-runs either pipeline.
 
 Produced by:
-    tests/benchmark/test_benchmark.py   (the MADRO "approach" runs)
-    tests/benchmark/test_baseline.py    (the "baseline" run)
+    tests/benchmark/test_benchmark.py   (the MADRO "approach" runs, parent_suite
+                                         "{approach} @ {timestamp}")
+    tests/benchmark/test_baseline.py    (the baseline runs, one per model, parent_suite
+                                         "Baseline_{model} @ {timestamp}")
 
 Usage:
     poetry run python scripts/compare_baseline.py --approach sample-10_alpha-0.0_beta-1.0
     poetry run python scripts/compare_baseline.py --approach sample-10_alpha-0.0_beta-1.0 \\
+        --baseline-model qwen2.5-coder \\
         --run-at 2026-07-09T17:35:04Z --baseline-run-at 2026-07-10T12:00:00Z \\
         --out my_comparison.json --grid-out my_grid.xlsx
 
 Outputs two files:
   --out (comparison_results.json): precision/recall@1/5/10 + positional diff
-    for the ONE approach selected via --approach, against the baseline.
+    for the ONE approach selected via --approach, against the ONE baseline
+    model selected via --baseline-model (default: gemini — test_baseline.py
+    runs the naive SQL baseline against both gemini and qwen2.5-coder, tagged
+    via each result's "baseline_model" Allure parameter).
   --grid-out (comparison_grid.xlsx): a wide grid, one column-block per
-    question (baseline + every approach found in allure-results, most recent
-    run of each), rows = ranked identity at positions 1..10. Identity values
-    repeated within a question's block are fill-colored so overlaps between
-    the baseline and different alpha/beta weightings are visible at a
-    glance. Independent of --approach — it always includes every approach.
+    question (one block per baseline model found + every MADRO approach
+    found in allure-results, most recent run of each), rows = ranked
+    identity at positions 1..10. Identity values repeated within a
+    question's block are fill-colored so overlaps between baselines and
+    different alpha/beta weightings are visible at a glance. Independent of
+    --approach/--baseline-model — it always includes every approach and
+    every baseline model found.
 """
 
 import argparse
@@ -37,7 +45,12 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from tabulate import tabulate
 
-from tests.benchmark.baselines.comparison import RANKS, compare, identity
+from tests.benchmark.baselines.comparison import BASELINE_SUITE_PREFIX, RANKS, compare, identity
+
+# Runs recorded before the "baseline_model" Allure parameter existed only
+# ever used Gemini, so a missing parameter defaults to it rather than an
+# "unknown" bucket.
+DEFAULT_BASELINE_MODEL = "gemini"
 
 GRID_ROWS = 10
 GRID_PALETTE = [
@@ -115,17 +128,36 @@ def _baseline_identity_lists(allure_dir: Path, entries: list[dict]) -> dict[str,
     return by_id
 
 
+def _baseline_model(entry: dict) -> str:
+    return entry["_parameters"].get("baseline_model") or DEFAULT_BASELINE_MODEL
+
+
+def _baseline_identity_lists_by_model(allure_dir: Path, entries: list[dict]) -> dict[str, dict[str, list[str]]]:
+    """One {question_id: ids} map per distinct baseline model found, each
+    built from that model's most recent run (independently of any other
+    model's run_at)."""
+    entries_by_model: dict[str, list[dict]] = {}
+    for entry in entries:
+        entries_by_model.setdefault(_baseline_model(entry), []).append(entry)
+
+    result = {}
+    for model_key, model_entries in entries_by_model.items():
+        selected, _ = _select_run(model_entries, None)
+        result[model_key] = _baseline_identity_lists(allure_dir, selected)
+    return result
+
+
 def _question_sort_key(question_id: str) -> int:
     match = re.match(r"Q(\d+)", question_id or "")
     return int(match.group(1)) if match else 10_000
 
 
 def build_comparison_grid(allure_dir: Path, all_results: list[dict], baseline_entries: list[dict]) -> Workbook:
-    """One column-block per question: baseline + every MADRO approach found in
-    allure-results (most recent run of each), sorted by alpha descending.
-    Rows are rank positions 1..GRID_ROWS. Identity values repeated within a
-    question's block (across baseline and/or approaches) get a shared fill
-    color, so overlaps are visible at a glance."""
+    """One column-block per question: every baseline model found + every MADRO
+    approach found in allure-results (most recent run of each), sorted by
+    alpha descending. Rows are rank positions 1..GRID_ROWS. Identity values
+    repeated within a question's block (across baselines and/or approaches)
+    get a shared fill color, so overlaps are visible at a glance."""
     approaches_raw: dict[str, list[dict]] = {}
     for r in all_results:
         approach = r["_parameters"].get("approach")
@@ -139,13 +171,16 @@ def build_comparison_grid(allure_dir: Path, all_results: list[dict], baseline_en
             approach_labels.append((float(m.group(1)), float(m.group(2)), approach))
     approach_labels.sort(key=lambda t: -t[0])
 
-    baseline_ids = _baseline_identity_lists(allure_dir, baseline_entries)
+    baseline_ids_by_model = _baseline_identity_lists_by_model(allure_dir, baseline_entries)
+    baseline_model_keys = sorted(baseline_ids_by_model)
     approach_ids = {}
     for _, _, approach in approach_labels:
         entries, _ = _select_run(approaches_raw[approach], None)
         approach_ids[approach] = _madro_identity_lists(allure_dir, entries)
 
-    question_ids = set(baseline_ids)
+    question_ids = set()
+    for ids_by_question in baseline_ids_by_model.values():
+        question_ids |= set(ids_by_question)
     for ids_by_question in approach_ids.values():
         question_ids |= set(ids_by_question)
     question_ids = sorted(question_ids, key=_question_sort_key)
@@ -156,7 +191,10 @@ def build_comparison_grid(allure_dir: Path, all_results: list[dict], baseline_en
 
     col = 1
     for question_id in question_ids:
-        columns = [("baseline", baseline_ids.get(question_id, []))]
+        columns = [
+            (f"baseline-{model_key}", baseline_ids_by_model[model_key].get(question_id, []))
+            for model_key in baseline_model_keys
+        ]
         for alpha, beta, approach in approach_labels:
             columns.append((f"alpha-{alpha}_beta-{beta}", approach_ids[approach].get(question_id, [])))
 
@@ -193,11 +231,12 @@ def build_comparison_grid(allure_dir: Path, all_results: list[dict], baseline_en
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--approach", required=True, help="MADRO run label, e.g. sample-10_alpha-0.0_beta-1.0")
+    parser.add_argument("--baseline-model", default=DEFAULT_BASELINE_MODEL, help="Which baseline model to compare against for --out, e.g. gemini or qwen2.5-coder (default: gemini)")
     parser.add_argument("--run-at", default=None, help="Disambiguate if --approach was run more than once (default: most recent)")
-    parser.add_argument("--baseline-run-at", default=None, help="Disambiguate if the baseline was run more than once (default: most recent)")
+    parser.add_argument("--baseline-run-at", default=None, help="Disambiguate if the baseline model was run more than once (default: most recent)")
     parser.add_argument("--allure-dir", default="allure-results", type=Path)
     parser.add_argument("--out", default="comparison_results.json", type=Path)
-    parser.add_argument("--grid-out", default="comparison_grid.xlsx", type=Path, help="Excel grid: baseline + every approach found, ranked identities per question, color-coded overlaps")
+    parser.add_argument("--grid-out", default="comparison_grid.xlsx", type=Path, help="Excel grid: every baseline model + every approach found, ranked identities per question, color-coded overlaps")
     args = parser.parse_args()
 
     all_results = _load_results(args.allure_dir)
@@ -208,13 +247,22 @@ def main() -> None:
         print(f"No MADRO results found for approach={args.approach!r} in {args.allure_dir}", file=sys.stderr)
         sys.exit(1)
 
-    baseline_candidates = [r for r in all_results if r["_labels"].get("parentSuite") == "baseline"]
+    all_baseline_entries = [
+        r for r in all_results if r["_labels"].get("parentSuite", "").startswith(BASELINE_SUITE_PREFIX)
+    ]
+    baseline_candidates = [r for r in all_baseline_entries if _baseline_model(r) == args.baseline_model]
     baseline_entries, baseline_run_at = _select_run(baseline_candidates, args.baseline_run_at)
     if not baseline_entries:
-        print(f"No baseline results found (parentSuite='baseline') in {args.allure_dir}", file=sys.stderr)
+        print(
+            f"No baseline results found for baseline_model={args.baseline_model!r} in {args.allure_dir}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
-    print(f"Comparing approach={args.approach!r} (run_at={madro_run_at}) against baseline (run_at={baseline_run_at})\n")
+    print(
+        f"Comparing approach={args.approach!r} (run_at={madro_run_at}) "
+        f"against baseline_model={args.baseline_model!r} (run_at={baseline_run_at})\n"
+    )
 
     madro_by_id: dict[str, tuple[str, list[dict]]] = {}
     for entry in madro_entries:
@@ -281,6 +329,7 @@ def main() -> None:
 
     output = {
         "approach": args.approach,
+        "baseline_model": args.baseline_model,
         "madro_run_at": madro_run_at,
         "baseline_run_at": baseline_run_at,
         "aggregate": aggregate_summary,
@@ -289,7 +338,7 @@ def main() -> None:
     args.out.write_text(json.dumps(output, ensure_ascii=False, indent=2))
     print(f"\nWrote {args.out}")
 
-    grid = build_comparison_grid(args.allure_dir, all_results, baseline_entries)
+    grid = build_comparison_grid(args.allure_dir, all_results, all_baseline_entries)
     grid.save(args.grid_out)
     print(f"Wrote {args.grid_out}")
 

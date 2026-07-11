@@ -9,6 +9,21 @@ image_model:
   temperature: 0
   max_tokens: 4096
 
+# Served locally via Ollama (http://localhost:11434) — see get_qwen_coder_model()
+# in config.py. Used only as a second naive-SQL baseline, alongside Gemini.
+qwen_baseline_model:
+  name: qwen2.5-coder:7b
+  temperature: 0
+  max_tokens: 4096
+
+# Also served locally via Ollama — see get_llama_model() in config.py. A third
+# naive-SQL baseline: same size class as qwen_baseline_model, but a
+# generalist model rather than code-specialized.
+llama_baseline_model:
+  name: llama3.1:8b
+  temperature: 0
+  max_tokens: 4096
+
 fusion:
   alpha: 0.3   # lexical weight
   beta: 0.7    # semantic weight

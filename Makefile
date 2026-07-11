@@ -46,16 +46,23 @@ benchmark:
 # Naive one-shot SQL baseline against dowser — decoupled from `benchmark`
 # above so it can be (re)run without re-executing MADRO's full pipeline
 # (thread workflow, agent runner, VLM enrichment, ranking). Writes into the
-# same allure-results/ dir under its own "baseline" parent_suite. Compare
-# against an existing `make benchmark` run with scripts/compare_baseline.py.
-# test_benchmark.py is --ignore'd because its module-level BENCHMARK_SAMPLE/
-# ALPHA/BETA env var lookups raise KeyError at collection time regardless of
-# marker filtering, and this target intentionally doesn't set them.
+# same allure-results/ dir, each model getting its own
+# "Baseline_{model} @ {timestamp}" parent_suite (same "{label} @ {timestamp}"
+# convention `benchmark` above uses for its RUN_ID). Runs against every model
+# in test_baseline.py's BASELINE_MODELS (currently Gemini, plus Qwen2.5-Coder
+# and Llama 3.1 8B served locally via Ollama) unless narrowed with MODEL.
+# Compare against an
+# existing `make benchmark` run with
+# scripts/compare_baseline.py. test_benchmark.py is --ignore'd because its
+# module-level BENCHMARK_SAMPLE/ALPHA/BETA env var lookups raise KeyError at
+# collection time regardless of marker filtering, and this target
+# intentionally doesn't set them.
 #   make benchmark-baseline
 #   make benchmark-baseline K="1 to 3"
+#   make benchmark-baseline MODEL=qwen2.5-coder
 benchmark-baseline:
 	$(if $(K),BENCHMARK_QUESTION_RANGE="$(K)") \
-	poetry run pytest -p no:django -m baseline --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_benchmark.py -v
+	poetry run pytest -p no:django -m baseline --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_benchmark.py -v $(if $(MODEL),-k "$(MODEL)")
 
 # Compares an existing `make benchmark` run's Allure results against the
 # `make benchmark-baseline` run's Allure results — read-only, no pipeline
@@ -63,9 +70,13 @@ benchmark-baseline:
 # (comparison_results.json + comparison_grid.xlsx).
 #
 # APPROACH is mandatory (the MADRO run label to compare against, e.g. the
-# value printed as "approach" in that run's Allure parameters). RUN_AT,
-# BASELINE_RUN_AT, OUT, and GRID_OUT are optional overrides:
+# value printed as "approach" in that run's Allure parameters). BASELINE_MODEL,
+# RUN_AT, BASELINE_RUN_AT, OUT, and GRID_OUT are optional overrides.
+# BASELINE_MODEL selects which baseline (gemini or qwen2.5-coder) the --out
+# JSON is computed against; the --grid-out spreadsheet always includes both
+# regardless of this setting:
 #   make compare-baseline APPROACH=sample-10_alpha-0.0_beta-1.0
+#   make compare-baseline APPROACH=sample-10_alpha-0.0_beta-1.0 BASELINE_MODEL=qwen2.5-coder
 #   make compare-baseline APPROACH=sample-10_alpha-0.0_beta-1.0 \
 #     RUN_AT=2026-07-09T17:35:04Z BASELINE_RUN_AT=2026-07-10T12:00:00Z \
 #     OUT=my_comparison.json GRID_OUT=my_grid.xlsx
@@ -73,6 +84,7 @@ compare-baseline:
 	@test -n "$(APPROACH)" || { echo 'APPROACH is required, e.g. make compare-baseline APPROACH=sample-10_alpha-0.0_beta-1.0'; exit 1; }
 	poetry run python scripts/compare_baseline.py \
 	  --approach $(APPROACH) \
+	  $(if $(BASELINE_MODEL),--baseline-model $(BASELINE_MODEL)) \
 	  $(if $(RUN_AT),--run-at $(RUN_AT)) \
 	  $(if $(BASELINE_RUN_AT),--baseline-run-at $(BASELINE_RUN_AT)) \
 	  $(if $(OUT),--out $(OUT)) \
@@ -80,8 +92,9 @@ compare-baseline:
 
 # Deletes every Allure result + attachment file belonging to one suite,
 # matched by its exact parentSuite label (e.g. as shown in `allure serve` or
-# a result file's "parentSuite" label — a full benchmark/baseline run's
-# label, or plain "baseline" for the whole baseline suite). Dry-run by
+# a result file's "parentSuite" label — a full benchmark run's
+# "{approach} @ {timestamp}" label, or a baseline run's
+# "Baseline_{model} @ {timestamp}" label). Dry-run by
 # default — only lists what would be deleted, and won't touch attachments
 # shared with another suite. Pass CONFIRM=1 to actually delete. See
 # scripts/delete_allure_suite.py.

@@ -20,6 +20,8 @@ from pathlib import Path
 import allure
 import pytest
 
+from madro.config import get_llama_model, get_model, get_qwen_coder_model, run_agent
+from tests.benchmark.baselines.comparison import BASELINE_SUITE_PREFIX
 from tests.benchmark.baselines.madro_reference import build_identity_hints
 from tests.benchmark.baselines.naive_sql_baseline import NaiveSQLBaseline
 
@@ -28,6 +30,21 @@ pytestmark = pytest.mark.baseline
 ALLURE_DIR = Path("allure-results")
 
 QUESTIONS = json.loads((Path(__file__).parent / "questions.json").read_text())
+
+# Every model the naive SQL baseline is run against, keyed by the label that
+# shows up as the "baseline_model" Allure parameter and in test ids (e.g.
+# "Q01-gemini"). Gemini goes through run_agent (rate-limit throttle + 429
+# retry for its free tier) and pydantic_ai's default tool-call output mode.
+# Qwen and Llama are served locally via Ollama with no rate limit, and both
+# need NativeOutput mode: against the real (long, schema-laden) system
+# prompt, both models occasionally add prose around the tool call and break
+# JSON parsing — a short smoke-test prompt didn't reproduce it for Llama, but
+# the full baseline prompt did (see NaiveSQLBaseline.use_native_output).
+BASELINE_MODELS = {
+    "gemini": (get_model, run_agent, False),
+    "qwen2.5-coder": (get_qwen_coder_model, lambda agent, prompt: agent.run(prompt), True),
+    "llama3.1": (get_llama_model, lambda agent, prompt: agent.run(prompt), True),
+}
 
 # Same slicing convention as test_benchmark.py, for resuming a partial run.
 _question_range = os.environ.get("BENCHMARK_QUESTION_RANGE")
@@ -40,6 +57,14 @@ if _question_range:
 RUN_TIMESTAMP = os.environ.get("BASELINE_RUN_TIMESTAMP") or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _run_id(model_key: str) -> str:
+    """Same "{label} @ {timestamp}" convention as test_benchmark.py's RUN_ID,
+    with the model key standing in for that suite's alpha/beta label — one
+    run of `make benchmark-baseline` covers every model in BASELINE_MODELS,
+    each getting its own parent_suite under the shared RUN_TIMESTAMP."""
+    return f"{BASELINE_SUITE_PREFIX}{model_key} @ {RUN_TIMESTAMP}"
+
+
 @pytest.fixture(scope="session")
 def event_loop():
     """One event loop shared across the whole session — see test_benchmark.py's
@@ -50,9 +75,11 @@ def event_loop():
     loop.close()
 
 
-@pytest.fixture(scope="session")
-def baseline() -> NaiveSQLBaseline:
-    return NaiveSQLBaseline()
+@pytest.fixture(scope="session", params=list(BASELINE_MODELS), ids=list(BASELINE_MODELS))
+def baseline(request) -> tuple[str, NaiveSQLBaseline]:
+    model_key = request.param
+    get_model_fn, runner, use_native_output = BASELINE_MODELS[model_key]
+    return model_key, NaiveSQLBaseline(model=get_model_fn(), runner=runner, use_native_output=use_native_output)
 
 
 @pytest.fixture(scope="session")
@@ -90,18 +117,22 @@ async def _run_question(prompt: str, baseline: NaiveSQLBaseline, identity_hint: 
 @allure.epic("MADRO")
 @pytest.mark.parametrize("question", QUESTIONS, ids=[q["id"] for q in QUESTIONS])
 def test_baseline_question(
-    question: dict, event_loop, baseline: NaiveSQLBaseline, identity_hints: dict[str, str],
+    question: dict, event_loop, baseline: tuple[str, NaiveSQLBaseline], identity_hints: dict[str, str],
 ) -> None:
+    model_key, baseline_instance = baseline
     allure.dynamic.title(question["prompt"])
     allure.dynamic.feature(question["complexity"])
     allure.dynamic.story(question["id"])
     allure.dynamic.tag(question["complexity"])
+    allure.dynamic.tag(model_key)
     allure.dynamic.parameter("run_at", RUN_TIMESTAMP)
-    # Distinct parent_suite from test_benchmark.py's RUN_ID values, so
-    # scripts/compare_baseline.py can tell the two kinds of run apart while
-    # both live in the same allure-results/ directory.
-    allure.dynamic.parent_suite("baseline")
+    allure.dynamic.parameter("baseline_model", model_key)
+    # BASELINE_SUITE_PREFIX keeps this distinguishable from test_benchmark.py's
+    # RUN_ID values (which never start with it), so scripts/compare_baseline.py
+    # and madro_reference.py can tell the two kinds of run apart while both
+    # live in the same allure-results/ directory.
+    allure.dynamic.parent_suite(_run_id(model_key))
     allure.dynamic.suite(question["complexity"])
-    allure.dynamic.sub_suite(question["id"])
+    allure.dynamic.sub_suite(f"{question['id']} ({model_key})")
     identity_hint = identity_hints.get(question["id"])
-    event_loop.run_until_complete(_run_question(question["prompt"], baseline, identity_hint))
+    event_loop.run_until_complete(_run_question(question["prompt"], baseline_instance, identity_hint))

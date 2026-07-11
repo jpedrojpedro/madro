@@ -10,6 +10,8 @@ from pydantic_ai import Agent
 from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.models.google import GoogleModel
 from pydantic_ai.providers.google import GoogleProvider
+from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.openai import OpenAIProvider
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -34,6 +36,8 @@ class FusionConfig(BaseModel):
 class AppConfig(BaseModel):
     model: ModelConfig = ModelConfig()
     image_model: ModelConfig = ModelConfig()
+    qwen_baseline_model: ModelConfig = ModelConfig(name="qwen2.5-coder:7b")
+    llama_baseline_model: ModelConfig = ModelConfig(name="llama3.1:8b")
     fusion: FusionConfig = FusionConfig()
     debug: DebugConfig = DebugConfig()
 
@@ -55,6 +59,29 @@ def get_model() -> GoogleModel:
 def get_image_model_name() -> str:
     cfg = load_config()
     return cfg.image_model.name
+
+
+OLLAMA_BASE_URL = "http://localhost:11434/v1"
+
+
+def get_qwen_coder_model() -> OpenAIChatModel:
+    """Qwen2.5-Coder served locally via Ollama — a second naive-SQL baseline
+    alongside Gemini, run entirely on-machine so it has no rate limit or API
+    cost. Ollama's OpenAI-compatible endpoint ignores the api_key value; a
+    placeholder is passed only because the underlying AsyncOpenAI client
+    requires a non-empty string."""
+    cfg = load_config()
+    provider = OpenAIProvider(base_url=OLLAMA_BASE_URL, api_key="ollama")
+    return OpenAIChatModel(cfg.qwen_baseline_model.name, provider=provider)
+
+
+def get_llama_model() -> OpenAIChatModel:
+    """Llama 3.1 8B served locally via Ollama — a third naive-SQL baseline: same
+    size class and zero-cost/no-rate-limit setup as get_qwen_coder_model(), but
+    a generalist model rather than a code-specialized one."""
+    cfg = load_config()
+    provider = OpenAIProvider(base_url=OLLAMA_BASE_URL, api_key="ollama")
+    return OpenAIChatModel(cfg.llama_baseline_model.name, provider=provider)
 
 
 # Gemini's free tier caps at 15 requests/minute; a single benchmark question

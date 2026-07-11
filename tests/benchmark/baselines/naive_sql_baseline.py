@@ -14,15 +14,19 @@ is worth one nudge to loosen an overly strict filter before accepting that.
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Awaitable, Callable
 
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent
+from pydantic_ai import Agent, NativeOutput
+from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.models import Model
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 from django.conf import settings
 
 from madro.config import get_model, run_agent
+
+AgentRunner = Callable[[Agent, str], Awaitable[AgentRunResult]]
 
 SQL_GENERATION_SP = """
 You are a naive SQL analyst. Write a single, read-only PostgreSQL query
@@ -103,13 +107,24 @@ class NaiveSQLBaseline:
     RESULT_LIMIT = 10
     MAX_ATTEMPTS = 5
 
-    def __init__(self, model: Model | None = None):
+    def __init__(self, model: Model | None = None, runner: AgentRunner | None = None, use_native_output: bool = False):
         schema_doc = (Path(__file__).parent / "dowser_schema.md").read_text()
+        # Gemini reliably returns SQLGenerationResult via pydantic_ai's default
+        # tool-call output mode. Qwen2.5-Coder (served locally via Ollama) does
+        # not — it tends to emit extra prose/SQL alongside the tool call,
+        # breaking JSON parsing — but handles NativeOutput's response_format
+        # json_schema mode correctly, so non-Gemini models should pass
+        # use_native_output=True.
+        output_type = NativeOutput(SQLGenerationResult) if use_native_output else SQLGenerationResult
         self._agent = Agent(
             model=model or get_model(),
-            output_type=SQLGenerationResult,
+            output_type=output_type,
             system_prompt=SQL_GENERATION_SP.format(schema=schema_doc),
         )
+        # run_agent applies Gemini's free-tier rate-limit throttle/retry — not
+        # applicable to a locally-served model, so callers using a non-Gemini
+        # model should pass their own runner (e.g. a plain `Agent.run`).
+        self._runner: AgentRunner = runner or run_agent
 
     async def resolve(self, prompt: str, identity_hint: str | None = None) -> NaiveSQLOutcome:
         history: list[FailedAttempt] = []
@@ -117,7 +132,7 @@ class NaiveSQLBaseline:
         current_prompt = base_prompt
 
         for attempt in range(1, self.MAX_ATTEMPTS + 1):
-            result = await run_agent(self._agent, current_prompt)
+            result = await self._runner(self._agent, current_prompt)
             sql_text = result.output.sql.strip()
 
             error = self._guard(sql_text)

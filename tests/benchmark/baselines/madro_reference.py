@@ -17,7 +17,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from tests.benchmark.baselines.comparison import identity
+from tests.benchmark.baselines.comparison import BASELINE_SUITE_PREFIX, identity
 
 
 def _load_madro_results(allure_dir: Path) -> list[dict]:
@@ -25,7 +25,7 @@ def _load_madro_results(allure_dir: Path) -> list[dict]:
     for path in sorted(allure_dir.glob("*-result.json")):
         data = json.loads(path.read_text())
         labels = {label["name"]: label["value"] for label in data.get("labels", [])}
-        if not labels.get("parentSuite") or labels["parentSuite"] == "baseline":
+        if not labels.get("parentSuite") or labels["parentSuite"].startswith(BASELINE_SUITE_PREFIX):
             continue
         data["_labels"] = labels
         results.append(data)

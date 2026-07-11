@@ -10,6 +10,14 @@ care where its inputs came from.
 ID_FIELD_PRIORITY = ("profile_id", "publication_id", "comment_id", "follower_profile_id")
 RANKS = (1, 5, 10)
 
+# test_baseline.py labels each baseline result's Allure parent_suite as
+# f"{BASELINE_SUITE_PREFIX}{model_key} @ {timestamp}" — the same
+# "{label} @ {timestamp}" convention test_benchmark.py uses for its own
+# RUN_ID, so baseline runs show up per-model/per-run just like MADRO
+# approach runs do. Consumers distinguish baseline entries from MADRO ones
+# by this prefix rather than an exact "baseline" match.
+BASELINE_SUITE_PREFIX = "Baseline_"
+
 
 def identity(record: dict) -> tuple[str, str] | None:
     """First matching (field, value) pair from ID_FIELD_PRIORITY, or None if
