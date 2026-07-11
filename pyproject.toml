@@ -21,6 +21,7 @@ accelerate = "^1.7.0"
 python-dotenv = "^1.2.2"
 pillow = "^12.2.0"
 tabulate = "^0.9.0"
+openpyxl = "^3.1.5"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3"
@@ -36,7 +37,8 @@ line-length = 100
 DJANGO_SETTINGS_MODULE = "madro.settings"
 pythonpath = ["src"]
 testpaths = ["tests"]
-addopts = "-m 'not benchmark'"
+addopts = "-m 'not benchmark and not baseline'"
 markers = [
     "benchmark: live end-to-end MADRO benchmark (hits real DBs and LLMs, run via `make benchmark`)",
+    "baseline: naive one-shot SQL baseline against dowser, run via `make benchmark-baseline`",
 ]

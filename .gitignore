@@ -54,6 +54,8 @@ cover/
 # Allure Report
 allure-results/
 allure-report/
+comparison_results.json
+comparison_grid.xlsx
 
 # Translations
 *.mo
