@@ -2,6 +2,7 @@ from psycopg import sql
 from pydantic import BaseModel, Field
 from datetime import datetime
 from madro.retrieval_agents.base import RetrievalAgent
+from madro.retrieval_agents.identity import EntityRef
 
 
 class ImageFetcherResult(BaseModel):
@@ -14,6 +15,7 @@ class ImageFetcherResult(BaseModel):
 
 
 class ImageFetcherAgent(RetrievalAgent):
+    identity = (EntityRef(field="publication_id", kind="publication"),)
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample") or 10

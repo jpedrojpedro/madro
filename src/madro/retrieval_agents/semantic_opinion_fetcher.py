@@ -1,5 +1,6 @@
 from psycopg import sql
 from madro.retrieval_agents.base import RetrievalAgent
+from madro.retrieval_agents.identity import EntityRef, Relationship
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional
@@ -16,6 +17,15 @@ class CommentSearchResult(BaseModel):
 
 
 class SemanticOpinionFetcherAgent(RetrievalAgent):
+    # comment_id is deliberately not declared here — it's this record's own row
+    # id, and nothing else in the system would ever join on it.
+    identity = (
+        Relationship(
+            subject=EntityRef(field="profile_id", kind="profile"),
+            predicate="commented_on",
+            object=EntityRef(field="publication_id", kind="publication"),
+        ),
+    )
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample") or 10

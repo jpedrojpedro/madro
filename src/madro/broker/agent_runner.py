@@ -4,24 +4,14 @@ import asyncio
 from asgiref.sync import sync_to_async
 from madro.db import async_cursor
 from madro.models import Agent, ExecutionStatus, JobExecution, JobStatus
-import importlib
 import json
 import httpx
 from madro.workflows.normalizer import MultimodalNormalizer
 from madro.internal_agents.enrichment_agent import EnrichmentAgent
 from madro.data_wrappers import RetrievalOut, NormalizedArtifact
+from madro.retrieval_agents.loader import load_local_agent
 
 logger = logging.getLogger(__name__)
-
-
-def _load_local_agent(uri: str):
-    module_path = uri.removeprefix("local://").removesuffix(".py").replace("/", ".")
-    module = importlib.import_module(module_path)
-    from madro.retrieval_agents.base import RetrievalAgent
-    for attr in vars(module).values():
-        if isinstance(attr, type) and issubclass(attr, RetrievalAgent) and attr is not RetrievalAgent:
-            return attr()
-    raise ValueError(f"No RetrievalAgent subclass found in {uri}")
 
 
 class AgentRunner:
@@ -127,7 +117,7 @@ class AgentRunner:
 
         raw = None
         if agent.uri.startswith("local://"):
-            local_agent = _load_local_agent(agent.uri)
+            local_agent = load_local_agent(agent.uri)
             raw = await local_agent.run(**payload)
         else:
             # NOTE: note being used
@@ -137,7 +127,11 @@ class AgentRunner:
                 raw = response.json()
 
         retrieval_out = RetrievalOut.model_validate(raw)
-        retrieval_out.provenance = {"source": agent.uri, "agent": agent.name}
+        retrieval_out.provenance = {
+            "source": agent.uri,
+            "agent": agent.name,
+            "identity": agent.identity,
+        }
 
         if agent.modality == "image" and retrieval_out.image_content:
             await self._enrichment_agent.enrich_records(retrieval_out)

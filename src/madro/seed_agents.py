@@ -3,6 +3,7 @@ and the Allure benchmark suite (tests/benchmark/)."""
 
 from madro.models import Agent, AgentTopic
 from madro.internal_agents.topic_categorization_agent import categorize_and_assign
+from madro.retrieval_agents.loader import load_local_agent_class
 
 SEED_AGENTS: list[dict] = [
     {
@@ -97,6 +98,16 @@ SEED_AGENTS: list[dict] = [
 ]
 
 
+def _identity_for(uri: str) -> list[dict]:
+    """Derived from the RetrievalAgent subclass itself rather than hand-copied
+    here, so the catalog's declared identity can never drift from the agent's
+    actual output schema."""
+    if not uri.startswith("local://"):
+        return []
+    agent_cls = load_local_agent_class(uri)
+    return [item.model_dump(mode="json") for item in agent_cls.identity]
+
+
 async def _seed_agent(spec: dict) -> Agent:
     agent, created = await Agent.objects.aget_or_create(
         name=spec["name"],
@@ -106,6 +117,7 @@ async def _seed_agent(spec: dict) -> Agent:
             "mcp_schema": spec["mcp_schema"],
             "candidate_topics": spec["candidate_topics"],
             "modality": spec.get("modality", "text"),
+            "identity": _identity_for(spec["uri"]),
         },
     )
     if created:

@@ -72,11 +72,13 @@ class RelevanceRanker:
             sem_rows = await cur.fetchall()
 
         # Group lexical scores by artifact
-        lex_by_artifact: dict[str, tuple[float, list[dict]]] = {}
+        lex_by_artifact: dict[str, tuple[float, list[dict], list[dict]]] = {}
         for row in lex_rows:
             artifact_id, provenance_details, lex_score = row
-            records = (provenance_details or {}).get("records") or []
-            lex_by_artifact[str(artifact_id)] = (float(lex_score), records)
+            pd = provenance_details or {}
+            records = pd.get("records") or []
+            identity = pd.get("identity") or []
+            lex_by_artifact[str(artifact_id)] = (float(lex_score), identity, records)
 
         # Group semantic scores by artifact — best chunk score per artifact
         sem_by_artifact: dict[str, float] = {}

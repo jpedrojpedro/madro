@@ -74,7 +74,7 @@ class DecomposedDemand(BaseModel):
 class RetrievalOut(BaseModel):
     image_content: list[str] = Field(default_factory=list)
     text_content: list[dict[str, Any]] = Field(default_factory=list)
-    provenance: dict[str, str] = Field(default_factory=dict)
+    provenance: dict[str, Any] = Field(default_factory=dict)
 
     @staticmethod
     def _is_base64(s: str) -> bool:

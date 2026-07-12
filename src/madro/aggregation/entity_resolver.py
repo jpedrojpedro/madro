@@ -1,46 +1,59 @@
+from madro.retrieval_agents.identity import flatten_refs
+
+
 class EntityResolver:
     """Joins per-artifact structured records (persisted in job_artifact.provenance_details)
-    into entities by a shared key."""
+    into entities using each artifact's own declared identity (retrieval_agents/identity.py),
+    rather than one key intersected across every artifact in the thread — a single
+    artifact whose records carry a different identity field no longer blocks joining
+    for every other artifact."""
 
     def resolve(
-        self, lex_by_artifact: dict[str, tuple[float, list[dict]]]
+        self, lex_by_artifact: dict[str, tuple[float, list[dict], list[dict]]]
     ) -> dict[str, tuple[list[str], dict]]:
-        parsed: dict[str, list[dict]] = {
-            artifact_id: records for artifact_id, (_, records) in lex_by_artifact.items()
-        }
-
-        # Find common keys across all record sets
-        all_key_sets = []
-        for records in parsed.values():
-            if records:
-                all_key_sets.append(set(records[0].keys()))
-
-        common_keys = set.intersection(*all_key_sets) if all_key_sets else set()
-        # Prefer known entity keys for joining
-        join_key = None
-        for candidate in ("profile_id", "id", "entity_id", "account_id"):
-            if candidate in common_keys:
-                join_key = candidate
-                break
-
         entities: dict[str, tuple[list[str], dict]] = {}
 
-        if join_key:
-            # Group records by join key across artifacts
-            for artifact_id, records in parsed.items():
-                for record in records:
-                    eid = str(record.get(join_key, artifact_id))
-                    if eid not in entities:
-                        entities[eid] = ([artifact_id], record)
-                    else:
-                        if artifact_id not in entities[eid][0]:
-                            entities[eid][0].append(artifact_id)
-                        entities[eid] = (entities[eid][0], {**entities[eid][1], **record})
-        else:
-            # No join key found — each record is its own entity (an artifact may
-            # hold many rows, e.g. all publications matched by one agent call)
-            for artifact_id, records in parsed.items():
-                for idx, record in enumerate(records):
-                    entities[f"{artifact_id}:{idx}"] = ([artifact_id], record)
+        def merge(eid: str, artifact_id: str, record: dict) -> None:
+            if eid not in entities:
+                entities[eid] = ([artifact_id], dict(record))
+                return
+            artifact_ids, merged = entities[eid]
+            if artifact_id not in artifact_ids:
+                artifact_ids.append(artifact_id)
+            entities[eid] = (artifact_ids, {**merged, **record})
+
+        for artifact_id, (_, identity, records) in lex_by_artifact.items():
+            refs = flatten_refs(identity)
+            relationships = [item for item in identity if "predicate" in item]
+
+            for idx, record in enumerate(records):
+                matched = [(field, kind) for field, kind in refs if record.get(field) is not None]
+
+                if not matched:
+                    # No declared identity (or none of it present on this record) —
+                    # it stands as its own entity, same as an agent with no identity at all.
+                    merge(f"{artifact_id}:{idx}", artifact_id, record)
+                    continue
+
+                for field, kind in matched:
+                    merge(f"{kind}:{record[field]}", artifact_id, record)
+
+                # A record satisfying both sides of a relationship feeds two distinct
+                # entities (e.g. a "follows" edge merges into both the follower's and
+                # the followed profile's entity) — record that connection as evidence
+                # on both without inventing a third "edge" entity for it.
+                for rel in relationships:
+                    s_field, s_kind = rel["subject"]["field"], rel["subject"]["kind"]
+                    o_field, o_kind = rel["object"]["field"], rel["object"]["kind"]
+                    if record.get(s_field) is None or record.get(o_field) is None:
+                        continue
+                    s_eid = f"{s_kind}:{record[s_field]}"
+                    o_eid = f"{o_kind}:{record[o_field]}"
+                    entities[s_eid][1].setdefault("_relationships", []).append(
+                        {"predicate": rel["predicate"], "role": "subject", "with": o_eid}
+                    )
+                    entities[o_eid][1].setdefault("_relationships", []).append(
+                        {"predicate": rel["predicate"], "role": "object", "with": s_eid}
+                    )
 
         return entities

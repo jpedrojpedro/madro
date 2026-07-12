@@ -2,6 +2,7 @@ from psycopg import sql
 from pydantic import BaseModel, Field
 from typing import Optional
 from madro.retrieval_agents.base import RetrievalAgent
+from madro.retrieval_agents.identity import EntityRef, Relationship
 
 
 class PublicationSearchResult(BaseModel):
@@ -15,6 +16,13 @@ class PublicationSearchResult(BaseModel):
 
 
 class PublicationFetcherAgent(RetrievalAgent):
+    identity = (
+        Relationship(
+            subject=EntityRef(field="profile_id", kind="profile"),
+            predicate="authored",
+            object=EntityRef(field="publication_id", kind="publication"),
+        ),
+    )
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample") if kwargs.get("sample") else 10

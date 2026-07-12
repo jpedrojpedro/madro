@@ -101,11 +101,14 @@ class Agent(GeneratedPKMixin, YamlExportMixin, db_models.Model):
     mcp_schema = db_models.JSONField()
     candidate_topics = ArrayField(base_field=db_models.TextField(), null=True, blank=True)
     modality = db_models.TextField(choices=AgentModality.choices, default=AgentModality.TEXT)
+    # List of EntityRef/Relationship dicts (see retrieval_agents/identity.py) declaring
+    # which record field(s) this agent's output identifies entities/relationships by.
+    identity = db_models.JSONField(default=list)
 
     def _insert_generated_sql(self):
         return (
-            "INSERT INTO agents_topics.agent (name, description, uri, mcp_schema, candidate_topics, modality) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
-            [self.name, self.description, self.uri, json.dumps(self.mcp_schema), self.candidate_topics, self.modality],
+            "INSERT INTO agents_topics.agent (name, description, uri, mcp_schema, candidate_topics, modality, identity) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id",
+            [self.name, self.description, self.uri, json.dumps(self.mcp_schema), self.candidate_topics, self.modality, json.dumps(self.identity)],
         )
 
     def _set_pk(self, row): self.id = row[0]

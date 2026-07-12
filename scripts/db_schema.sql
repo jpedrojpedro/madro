@@ -35,7 +35,8 @@ create table agents_topics.agent(
     uri text not null,
     mcp_schema jsonb not null,
     candidate_topics text[] null,
-    modality agents_topics.agent_modality not null default 'text'
+    modality agents_topics.agent_modality not null default 'text',
+    identity jsonb not null default '[]'::jsonb
 );
 
 create table agents_topics.topic(
