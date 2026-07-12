@@ -15,7 +15,7 @@ class ProfileFetcherResult(BaseModel):
 
 
 class ProfileFetcherAgent(RetrievalAgent):
-    identity = (EntityRef(field="profile_id", kind="profile"),)
+    identity = EntityRef(field="profile_id", kind="profile")
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample") if kwargs.get("sample") else 10

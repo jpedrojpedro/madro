@@ -4,16 +4,16 @@ from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 from django.conf import settings
 
-from madro.retrieval_agents.identity import EntityRef, Relationship
+from madro.retrieval_agents.identity import EntityRef
 
 
 class RetrievalAgent(ABC):
     """Base class for local retrieval agents that query a remote Postgres DB."""
 
-    # Declares which field(s) in this agent's output records identify entities
-    # (or relationships between entities), so EntityResolver can join records
-    # across agents without guessing from field names. See identity.py.
-    identity: tuple[EntityRef | Relationship, ...] = ()
+    # Declares which field in this agent's output records identifies its entities,
+    # so EntityResolver can join records across agents without guessing from
+    # field names. See identity.py.
+    identity: EntityRef | None = None
 
     async def connect(self) -> AsyncConnection:
         return await AsyncConnection.connect(

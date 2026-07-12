@@ -2,7 +2,7 @@ from psycopg import sql
 from pydantic import BaseModel, Field
 from typing import Optional
 from madro.retrieval_agents.base import RetrievalAgent
-from madro.retrieval_agents.identity import EntityRef, Relationship
+from madro.retrieval_agents.identity import EntityRef
 
 
 class FollowerAnalysisResult(BaseModel):
@@ -20,13 +20,7 @@ class FollowerAnalysisFetcherAgent(RetrievalAgent):
     """Finds profiles matching a search demand (via biography) that are followed
     by influencer-tier profiles, using the profile_relationship follow graph."""
 
-    identity = (
-        Relationship(
-            subject=EntityRef(field="follower_profile_id", kind="profile"),
-            predicate="follows",
-            object=EntityRef(field="profile_id", kind="profile"),
-        ),
-    )
+    identity = EntityRef(field="profile_id", kind="profile")
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample") if kwargs.get("sample") else 10

@@ -101,9 +101,9 @@ class Agent(GeneratedPKMixin, YamlExportMixin, db_models.Model):
     mcp_schema = db_models.JSONField()
     candidate_topics = ArrayField(base_field=db_models.TextField(), null=True, blank=True)
     modality = db_models.TextField(choices=AgentModality.choices, default=AgentModality.TEXT)
-    # List of EntityRef/Relationship dicts (see retrieval_agents/identity.py) declaring
-    # which record field(s) this agent's output identifies entities/relationships by.
-    identity = db_models.JSONField(default=list)
+    # The EntityRef dict (see retrieval_agents/identity.py) declaring which record
+    # field this agent's output identifies entities by, or None if it doesn't.
+    identity = db_models.JSONField(null=True, blank=True, default=None)
 
     def _insert_generated_sql(self):
         return (

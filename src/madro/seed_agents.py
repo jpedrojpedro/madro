@@ -98,14 +98,14 @@ SEED_AGENTS: list[dict] = [
 ]
 
 
-def _identity_for(uri: str) -> list[dict]:
+def _identity_for(uri: str) -> dict | None:
     """Derived from the RetrievalAgent subclass itself rather than hand-copied
     here, so the catalog's declared identity can never drift from the agent's
     actual output schema."""
     if not uri.startswith("local://"):
-        return []
+        return None
     agent_cls = load_local_agent_class(uri)
-    return [item.model_dump(mode="json") for item in agent_cls.identity]
+    return agent_cls.identity.model_dump(mode="json") if agent_cls.identity else None
 
 
 async def _seed_agent(spec: dict) -> Agent:

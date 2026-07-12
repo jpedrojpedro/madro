@@ -15,7 +15,7 @@ class ImageFetcherResult(BaseModel):
 
 
 class ImageFetcherAgent(RetrievalAgent):
-    identity = (EntityRef(field="publication_id", kind="publication"),)
+    identity = EntityRef(field="publication_id", kind="publication")
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample") or 10
