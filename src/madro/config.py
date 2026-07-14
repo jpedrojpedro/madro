@@ -56,12 +56,14 @@ def get_model() -> GoogleModel:
     return GoogleModel(cfg.model.name, provider=provider)
 
 
-def get_image_model_name() -> str:
-    cfg = load_config()
-    return cfg.image_model.name
-
-
 OLLAMA_BASE_URL = "http://localhost:11434/v1"
+
+
+def get_image_model() -> OpenAIChatModel:
+    """EnrichmentAgent's vision model (captioning/OCR), served locally via Ollama."""
+    cfg = load_config()
+    provider = OpenAIProvider(base_url=OLLAMA_BASE_URL, api_key="ollama")
+    return OpenAIChatModel(cfg.image_model.name, provider=provider)
 
 
 def get_qwen_coder_model() -> OpenAIChatModel:

@@ -60,5 +60,10 @@ Ranked evidence (JSON, ordered by relevance):
 
 EnrichmentAgentSP = {
     "description": "Describe this image in detail.",
-    "extraction": "Extract all text from this image.\n\nReturn markdown preserving structure.",
+    "extraction": (
+        "Extract all text from this image.\n\n"
+        "Return markdown preserving structure. "
+        "Important: output raw markdown syntax only — do not wrap it in a ``` code fence "
+        "or any other surrounding block."
+    ),
 }

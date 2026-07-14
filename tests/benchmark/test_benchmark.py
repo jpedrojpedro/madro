@@ -97,11 +97,11 @@ class Pipeline:
 @pytest.fixture(scope="session")
 def pipeline() -> Pipeline:
     """
-    Built once and reused for every question. EnrichmentAgent and
-    MultimodalNormalizer lazily load their models (a ~3B-parameter VLM and a
-    sentence-transformers encoder) on first use — one instance per question
-    means one model reload per question, which grows memory unboundedly over
-    a 20-question run until the OS OOM-kills the process.
+    Built once and reused for every question. EnrichmentAgent calls its vision
+    model over Ollama (out-of-process), but MultimodalNormalizer still lazily
+    loads a sentence-transformers encoder in-process on first use — one
+    instance per question means one encoder reload per question, which grows
+    memory unboundedly over a 20-question run until the OS OOM-kills the process.
     """
     normalizer = MultimodalNormalizer()
     runner = AgentRunner(enrichment_agent=EnrichmentAgent(), normalizer=normalizer)
