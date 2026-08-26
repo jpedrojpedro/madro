@@ -35,8 +35,9 @@ line-length = 100
 DJANGO_SETTINGS_MODULE = "madro.settings"
 pythonpath = ["src"]
 testpaths = ["tests"]
-addopts = "-m 'not benchmark and not baseline'"
+addopts = "-m 'not benchmark and not baseline and not ground_truth'"
 markers = [
     "benchmark: live end-to-end MADRO benchmark (hits real DBs and LLMs, run via `make benchmark`)",
     "baseline: naive one-shot SQL baseline against dowser, run via `make benchmark-baseline`",
+    "ground_truth: hint-scoped zero-shot SQL ground truth against dowser, run via `make benchmark-ground-truth`",
 ]

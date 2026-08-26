@@ -18,6 +18,11 @@ RANKS = (1, 5, 10)
 # by this prefix rather than an exact "baseline" match.
 BASELINE_SUITE_PREFIX = "Baseline_"
 
+# Same convention as BASELINE_SUITE_PREFIX, for test_ground_truth.py — Ground
+# Truth only ever runs against Gemini, but keeps the "{label} @ {timestamp}"
+# shape so it can be picked out of allure-results/ the same way.
+GROUND_TRUTH_SUITE_PREFIX = "GroundTruth_"
+
 
 def identity(record: dict) -> tuple[str, str] | None:
     """First matching (field, value) pair from ID_FIELD_PRIORITY, or None if

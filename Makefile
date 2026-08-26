@@ -1,4 +1,4 @@
-.PHONY: start migrate test lint db benchmark benchmark-baseline compare-baseline delete-suite
+.PHONY: start migrate test lint db benchmark benchmark-baseline benchmark-ground-truth compare-baseline delete-suite
 
 db:
 	docker compose up -d
@@ -41,7 +41,7 @@ benchmark:
 	BENCHMARK_BETA=$(FUSION_SEM) \
 	$(if $(RUN_TIMESTAMP),BENCHMARK_RUN_TIMESTAMP=$(RUN_TIMESTAMP)) \
 	$(if $(K),BENCHMARK_QUESTION_RANGE="$(K)") \
-	poetry run pytest -p no:django -m benchmark --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_baseline.py -v
+	poetry run pytest -p no:django -m benchmark --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_baseline.py --ignore=tests/benchmark/test_ground_truth.py -v
 
 # Naive one-shot SQL baseline against dowser — decoupled from `benchmark`
 # above so it can be (re)run without re-executing MADRO's full pipeline
@@ -62,7 +62,19 @@ benchmark:
 #   make benchmark-baseline MODEL=qwen2.5-coder
 benchmark-baseline:
 	$(if $(K),BENCHMARK_QUESTION_RANGE="$(K)") \
-	poetry run pytest -p no:django -m baseline --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_benchmark.py -v $(if $(MODEL),-k "$(MODEL)")
+	poetry run pytest -p no:django -m baseline --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_benchmark.py --ignore=tests/benchmark/test_ground_truth.py -v $(if $(MODEL),-k "$(MODEL)")
+
+# Ground Truth: the authoritative answer for each question, resolved via the
+# same zero-shot SQL resolver as Baseline but scoped to only the tables
+# named in that question's `hint` (see tests/benchmark/baselines/hint_schema.py)
+# and Gemini only. Run this before `make benchmark-baseline` if you want
+# Baseline steered by Ground Truth's resolved identity column (see
+# tests/benchmark/baselines/ground_truth_reference.py).
+#   make benchmark-ground-truth
+#   make benchmark-ground-truth K="1 to 3"
+benchmark-ground-truth:
+	$(if $(K),BENCHMARK_QUESTION_RANGE="$(K)") \
+	poetry run pytest -p no:django -m ground_truth --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_benchmark.py --ignore=tests/benchmark/test_baseline.py -v
 
 # Compares an existing `make benchmark` run's Allure results against the
 # `make benchmark-baseline` run's Allure results — read-only, no pipeline

@@ -1,14 +1,19 @@
 """
-Naive one-shot SQL baseline: given only the raw user prompt and a markdown
-description of the `dowser` schema (`dowser_schema.md`), have an LLM write a
-read-only SQL query and execute it, retrying up to MAX_ATTEMPTS times. Each
-retry's prompt includes the previous attempt's SQL and either the execution
-error or a note that the query returned zero rows, so the model can
-self-correct. A final empty result is still a valid, expected outcome — not
-every question has an answer expressible as raw SQL (e.g. it may depend on
-OCR/image-caption content that only exists in MADRO's own enrichment
-pipeline) — but a query that merely *executed* fine while returning nothing
-is worth one nudge to loosen an overly strict filter before accepting that.
+Zero-shot one-shot SQL resolver: given only a prompt and a markdown schema
+description, have an LLM write a read-only SQL query and execute it,
+retrying up to MAX_ATTEMPTS times. Each retry's prompt includes the previous
+attempt's SQL and either the execution error or a note that the query
+returned zero rows, so the model can self-correct. A final empty result is
+still a valid, expected outcome — not every question has an answer
+expressible as raw SQL (e.g. it may depend on OCR/image-caption content that
+only exists in MADRO's own enrichment pipeline) — but a query that merely
+*executed* fine while returning nothing is worth one nudge to loosen an
+overly strict filter before accepting that.
+
+Shared by both Baseline (default schema_doc: the full `dowser_schema.md`,
+public schema only) and Ground Truth (a per-question hint-scoped schema
+slice — see `hint_schema.build_hint_schema()`); the class name reflects its
+original, Baseline-only purpose but it's schema-agnostic.
 """
 
 import re
@@ -107,8 +112,17 @@ class NaiveSQLBaseline:
     RESULT_LIMIT = 10
     MAX_ATTEMPTS = 5
 
-    def __init__(self, model: Model | None = None, runner: AgentRunner | None = None, use_native_output: bool = False):
-        schema_doc = (Path(__file__).parent / "dowser_schema.md").read_text()
+    def __init__(
+        self,
+        model: Model | None = None,
+        runner: AgentRunner | None = None,
+        use_native_output: bool = False,
+        schema_doc: str | None = None,
+    ):
+        # Baseline queries the full public schema (default: dowser_schema.md).
+        # Ground Truth passes its own hint-scoped schema slice instead — see
+        # hint_schema.build_hint_schema().
+        schema_doc = schema_doc or (Path(__file__).parent / "dowser_schema.md").read_text()
         # Gemini reliably returns SQLGenerationResult via pydantic_ai's default
         # tool-call output mode. Qwen2.5-Coder (served locally via Ollama) does
         # not — it tends to emit extra prose/SQL alongside the tool call,

@@ -224,6 +224,9 @@ __marimo__/
 
 # LLM coding support
 CLAUDE.md
+CONTEXT.md
+docs/
+experiments.md
 
 # Dowser DB
 scripts/dowser_db_schema.sql
