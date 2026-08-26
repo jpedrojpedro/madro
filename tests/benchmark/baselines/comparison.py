@@ -1,7 +1,9 @@
 """
-Compares MADRO's ranked entities against the naive SQL baseline's rows.
+Compares a retrieved result set (Baseline's rows or MADRO's ranked entities)
+against Ground Truth's rows, which stands as the reference ("relevant") set
+for both — see docs/adr/0001-ground-truth-is-the-benchmark-reference.md.
 
-Both sides are plain, already rank-ordered `list[dict]` — either live
+All three sides are plain, already rank-ordered `list[dict]` — either live
 in-process objects (`RankedEntity.entity_data`, `NaiveSQLOutcome.rows`) or
 records parsed back out of Allure JSON attachments — so `compare()` doesn't
 care where its inputs came from.
@@ -47,46 +49,67 @@ def _ids(records: list[dict]) -> tuple[list[tuple[str, str]], int]:
     return ids, dropped
 
 
-def compare(madro_records: list[dict], baseline_records: list[dict]) -> dict:
-    """MADRO's ranked list is treated as the reference ("relevant") set,
-    the baseline's rows as retrieved — precision@k is the fraction of the
-    baseline's top-k also present in MADRO's top-k, recall@k the fraction
-    of MADRO's top-k the baseline also retrieved. The two diverge when the
-    lists have different lengths (e.g. MADRO resolves fewer than k distinct
-    entities while the baseline always returns up to 10)."""
-    madro_ids, madro_dropped = _ids(madro_records)
-    baseline_ids, baseline_dropped = _ids(baseline_records)
+def compare(reference_records: list[dict], retrieved_records: list[dict]) -> dict:
+    """`reference_records` (Ground Truth's resolved rows) is the "relevant"
+    set; `retrieved_records` (Baseline's rows or MADRO's ranked entities) is
+    scored against it — precision@k is the fraction of retrieved's top-k
+    also present in reference's top-k, recall@k the fraction of reference's
+    top-k that retrieved also found. The two diverge when the lists have
+    different lengths (e.g. Ground Truth resolves fewer than k distinct
+    entities while Baseline always returns up to 10).
+
+    Also reports whether the two sides even agree on *what kind* of entity
+    they're returning (`identity_match`) — a real 0% overlap on the wrong
+    entity type isn't a ranking failure, it's a granularity mismatch, and
+    the two shouldn't be conflated."""
+    reference_ids, reference_dropped = _ids(reference_records)
+    retrieved_ids, retrieved_dropped = _ids(retrieved_records)
 
     metrics = {}
     for k in RANKS:
-        topk_madro = madro_ids[:k]
-        topk_baseline = baseline_ids[:k]
-        overlap = set(topk_madro) & set(topk_baseline)
+        topk_reference = reference_ids[:k]
+        topk_retrieved = retrieved_ids[:k]
+        overlap = set(topk_reference) & set(topk_retrieved)
         metrics[k] = {
-            "precision": len(overlap) / len(topk_baseline) if topk_baseline else 0.0,
-            "recall": len(overlap) / len(topk_madro) if topk_madro else 0.0,
+            "precision": len(overlap) / len(topk_retrieved) if topk_retrieved else 0.0,
+            "recall": len(overlap) / len(topk_reference) if topk_reference else 0.0,
             "overlap": len(overlap),
-            "madro_count": len(topk_madro),
-            "baseline_count": len(topk_baseline),
+            "reference_count": len(topk_reference),
+            "retrieved_count": len(topk_retrieved),
         }
 
-    positions_madro = {key: i + 1 for i, key in enumerate(madro_ids)}
-    positions_baseline = {key: i + 1 for i, key in enumerate(baseline_ids)}
+    positions_reference = {key: i + 1 for i, key in enumerate(reference_ids)}
+    positions_retrieved = {key: i + 1 for i, key in enumerate(retrieved_ids)}
     diff = sorted(
         (
             {
                 "identity": f"{key[0]}={key[1]}",
-                "madro_position": positions_madro.get(key),
-                "baseline_position": positions_baseline.get(key),
+                "reference_position": positions_reference.get(key),
+                "retrieved_position": positions_retrieved.get(key),
             }
-            for key in set(positions_madro) | set(positions_baseline)
+            for key in set(positions_reference) | set(positions_retrieved)
         ),
-        key=lambda d: (d["madro_position"] is None, d["madro_position"] or 0, d["baseline_position"] or 0),
+        key=lambda d: (
+            d["reference_position"] is None,
+            d["reference_position"] or 0,
+            d["retrieved_position"] or 0,
+        ),
+    )
+
+    reference_identity_field = reference_ids[0][0] if reference_ids else None
+    retrieved_identity_field = retrieved_ids[0][0] if retrieved_ids else None
+    identity_match = (
+        reference_identity_field == retrieved_identity_field
+        if reference_identity_field and retrieved_identity_field
+        else None
     )
 
     return {
         "metrics": metrics,
         "diff": diff,
-        "madro_dropped_no_identity": madro_dropped,
-        "baseline_dropped_no_identity": baseline_dropped,
+        "reference_dropped_no_identity": reference_dropped,
+        "retrieved_dropped_no_identity": retrieved_dropped,
+        "reference_identity_field": reference_identity_field,
+        "retrieved_identity_field": retrieved_identity_field,
+        "identity_match": identity_match,
     }

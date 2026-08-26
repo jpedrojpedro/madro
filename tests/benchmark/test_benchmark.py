@@ -110,6 +110,13 @@ def pipeline() -> Pipeline:
     return Pipeline(runner=runner, ranker=ranker, synthesizer=synthesizer)
 
 
+def _effective_prompt(question: dict) -> str:
+    """`rephrase` stands in for a clarification turn MADRO doesn't implement
+    yet — used in place of `prompt` whenever present, uniformly across
+    Ground Truth, Baseline, and MADRO. See CONTEXT.md's `effective prompt`."""
+    return question.get("rephrase") or question["prompt"]
+
+
 async def _run_question(prompt: str, pipeline: Pipeline) -> None:
     with allure.step("Run thread"):
         thread, user_message, decomposed = await run_thread(thread_id=None, task_prompt=prompt)
@@ -219,4 +226,4 @@ def test_benchmark_question(question: dict, event_loop, pipeline: Pipeline) -> N
     allure.dynamic.parent_suite(RUN_ID)
     allure.dynamic.suite(question["complexity"])
     allure.dynamic.sub_suite(question["id"])
-    event_loop.run_until_complete(_run_question(question["prompt"], pipeline))
+    event_loop.run_until_complete(_run_question(_effective_prompt(question), pipeline))
