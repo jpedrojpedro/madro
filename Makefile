@@ -70,10 +70,18 @@ benchmark-baseline:
 # and Gemini only. Run this before `make benchmark-baseline` if you want
 # Baseline steered by Ground Truth's resolved identity column (see
 # tests/benchmark/baselines/ground_truth_reference.py).
+#
+# To resume a run that failed/was refused partway through (e.g. a Gemini
+# error on one question), select just the remaining question ids via
+# K="<start> to <end>" and pass the original run's RUN_TIMESTAMP (as printed
+# in its Allure parent_suite label, e.g. "GroundTruth_gemini @ <timestamp>")
+# so the result lands back in the same run instead of starting a new one:
 #   make benchmark-ground-truth
 #   make benchmark-ground-truth K="1 to 3"
+#   make benchmark-ground-truth K="1 to 1" RUN_TIMESTAMP=2026-08-26T19:34:13Z
 benchmark-ground-truth:
 	$(if $(K),BENCHMARK_QUESTION_RANGE="$(K)") \
+	$(if $(RUN_TIMESTAMP),GROUND_TRUTH_RUN_TIMESTAMP=$(RUN_TIMESTAMP)) \
 	poetry run pytest -p no:django -m ground_truth --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_benchmark.py --ignore=tests/benchmark/test_baseline.py -v
 
 # Compares an existing `make benchmark` run's Allure results against the
