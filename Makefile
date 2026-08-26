@@ -82,15 +82,20 @@ benchmark-ground-truth:
 # (comparison_results.json + comparison_grid.xlsx).
 #
 # APPROACH is mandatory (the MADRO run label to compare against, e.g. the
-# value printed as "approach" in that run's Allure parameters). BASELINE_MODEL,
-# RUN_AT, BASELINE_RUN_AT, OUT, and GRID_OUT are optional overrides.
-# BASELINE_MODEL selects which baseline (gemini or qwen2.5-coder) the --out
-# JSON is computed against; the --grid-out spreadsheet always includes both
-# regardless of this setting:
+# value printed as "approach" in that run's Allure parameters). Ground Truth
+# is the reference for both Baseline and MADRO (see
+# docs/adr/0001-ground-truth-is-the-benchmark-reference.md) and must already
+# have a run in allure-results/ (`make benchmark-ground-truth`).
+# BASELINE_MODEL, RUN_AT, BASELINE_RUN_AT, GROUND_TRUTH_RUN_AT, OUT, and
+# GRID_OUT are optional overrides. BASELINE_MODEL selects which baseline
+# (gemini or qwen2.5-coder) the --out JSON is computed against; the
+# --grid-out spreadsheet always includes every baseline model + approach
+# found regardless of this setting:
 #   make compare-baseline APPROACH=sample-10_alpha-0.0_beta-1.0
 #   make compare-baseline APPROACH=sample-10_alpha-0.0_beta-1.0 BASELINE_MODEL=qwen2.5-coder
 #   make compare-baseline APPROACH=sample-10_alpha-0.0_beta-1.0 \
 #     RUN_AT=2026-07-09T17:35:04Z BASELINE_RUN_AT=2026-07-10T12:00:00Z \
+#     GROUND_TRUTH_RUN_AT=2026-07-08T09:00:00Z \
 #     OUT=my_comparison.json GRID_OUT=my_grid.xlsx
 compare-baseline:
 	@test -n "$(APPROACH)" || { echo 'APPROACH is required, e.g. make compare-baseline APPROACH=sample-10_alpha-0.0_beta-1.0'; exit 1; }
@@ -99,6 +104,7 @@ compare-baseline:
 	  $(if $(BASELINE_MODEL),--baseline-model $(BASELINE_MODEL)) \
 	  $(if $(RUN_AT),--run-at $(RUN_AT)) \
 	  $(if $(BASELINE_RUN_AT),--baseline-run-at $(BASELINE_RUN_AT)) \
+	  $(if $(GROUND_TRUTH_RUN_AT),--ground-truth-run-at $(GROUND_TRUTH_RUN_AT)) \
 	  $(if $(OUT),--out $(OUT)) \
 	  $(if $(GRID_OUT),--grid-out $(GRID_OUT))
 
