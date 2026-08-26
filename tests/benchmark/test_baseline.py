@@ -22,7 +22,7 @@ import pytest
 
 from madro.config import get_llama_model, get_model, get_qwen_coder_model, run_agent
 from tests.benchmark.baselines.comparison import BASELINE_SUITE_PREFIX
-from tests.benchmark.baselines.madro_reference import build_identity_hints
+from tests.benchmark.baselines.ground_truth_reference import build_identity_hints
 from tests.benchmark.baselines.naive_sql_baseline import NaiveSQLBaseline
 
 pytestmark = pytest.mark.baseline
@@ -84,11 +84,20 @@ def baseline(request) -> tuple[str, NaiveSQLBaseline]:
 
 @pytest.fixture(scope="session")
 def identity_hints() -> dict[str, str]:
-    """question_id -> identity field name, computed once from whatever MADRO
-    runs already exist in allure-results/ — see madro_reference.py. Missing
-    for questions with no prior MADRO run; NaiveSQLBaseline falls back to its
-    generic instructions in that case."""
+    """question_id -> identity field name, read off the most recent Ground
+    Truth run already sitting in allure-results/ — see
+    ground_truth_reference.py. Missing for questions with no Ground Truth
+    run yet; NaiveSQLBaseline falls back to its generic instructions in that
+    case. Run `make benchmark-ground-truth` first if you want this
+    populated."""
     return build_identity_hints(ALLURE_DIR)
+
+
+def _effective_prompt(question: dict) -> str:
+    """`rephrase` stands in for a clarification turn MADRO doesn't implement
+    yet — used in place of `prompt` whenever present, uniformly across
+    Ground Truth, Baseline, and MADRO. See CONTEXT.md's `effective prompt`."""
+    return question.get("rephrase") or question["prompt"]
 
 
 async def _run_question(prompt: str, baseline: NaiveSQLBaseline, identity_hint: str | None) -> None:
@@ -128,11 +137,12 @@ def test_baseline_question(
     allure.dynamic.parameter("run_at", RUN_TIMESTAMP)
     allure.dynamic.parameter("baseline_model", model_key)
     # BASELINE_SUITE_PREFIX keeps this distinguishable from test_benchmark.py's
-    # RUN_ID values (which never start with it), so scripts/compare_baseline.py
-    # and madro_reference.py can tell the two kinds of run apart while both
-    # live in the same allure-results/ directory.
+    # and test_ground_truth.py's RUN_ID values (neither of which start with
+    # it), so scripts/compare_baseline.py and ground_truth_reference.py can
+    # tell the different kinds of run apart while all three live in the same
+    # allure-results/ directory.
     allure.dynamic.parent_suite(_run_id(model_key))
     allure.dynamic.suite(question["complexity"])
     allure.dynamic.sub_suite(f"{question['id']} ({model_key})")
     identity_hint = identity_hints.get(question["id"])
-    event_loop.run_until_complete(_run_question(question["prompt"], baseline_instance, identity_hint))
+    event_loop.run_until_complete(_run_question(_effective_prompt(question), baseline_instance, identity_hint))
