@@ -13,7 +13,6 @@ pre-calculated topic/geo flags flattened onto the same row:
 
 | column                          | type     | notes |
 |----------------------------------|----------|-------|
-| `location`                       | text     | one of a fixed set of known cities (`Balneário Camboriú`, `Rio de Janeiro`, `São Paulo`, `Florianópolis`, `Curitiba`) matched from the biography or a separate `profile_analysis` table; `NULL` if none matched. |
 | `is_influencer`                  | text     | `'t'` or `'f'` — **not boolean**, compare with `= 't'`/`= 'f'`. `'t'` when `num_followers >= 50000`. |
 | `is_restaurant`                  | text     | `'t'` or `'f'` — **not boolean**, compare with `= 't'`/`= 'f'`. `'t'` when the biography matches a food/restaurant keyword or `profile_analysis` tags the account as a food/restaurant commercial segment. |
 | `restaurant_primary_category`    | text     | from `profile_analysis.commercial_subsegment`; `NULL` when `is_restaurant = 'f'` or no analysis row exists. |
@@ -21,6 +20,29 @@ pre-calculated topic/geo flags flattened onto the same row:
 
 Full-text search: still `biography_lexemes @@ to_tsquery(...)`, same as
 `public.profile`.
+
+City is **not** a column on this view — see `benchmark_hints.profile_location`
+below and `JOIN` to it for any location-scoped question.
+
+## `benchmark_hints.profile_location`
+
+A profile's matched cities, one row per `(id, city)` match — not a 1:1
+extension of `profile`. A profile can have zero rows here (no city matched),
+one, or several (e.g. a chain present in more than one city): treat this as
+a normal many-to-many relation and `JOIN` to it, rather than assuming a
+single scalar location per profile.
+
+| column     | type | notes |
+|------------|------|-------|
+| `id`       | int  | `profile.id` — join key, not unique on this table. |
+| `username` | text | `profile.username`, denormalized for convenience. |
+| `location` | text | one of a fixed set of known cities (`Balneário Camboriú`, `Rio de Janeiro`, `São Paulo`, `Florianópolis`, `Curitiba`), matched from the biography or a separate `profile_analysis` table. |
+
+To filter `benchmark_hints.profile` by city:
+`... FROM benchmark_hints.profile p JOIN benchmark_hints.profile_location pl ON p.id = pl.id WHERE pl.location = '<city>'`.
+Don't `LEFT JOIN` this onto `profile` and then filter/aggregate over the
+combined row set for anything that isn't itself city-scoped — a multi-city
+profile's non-location columns would be double-counted.
 
 ## `benchmark_hints.<account>_publication`
 

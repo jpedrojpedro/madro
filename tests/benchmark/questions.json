@@ -4,7 +4,8 @@
     "complexity": "low (single-agent, textual)",
     "prompt": "What restaurants are near Balneário Camboriú?",
     "hint": [
-      "benchmark_hints.profile"
+      "benchmark_hints.profile",
+      "benchmark_hints.profile_location"
     ]
   },
   {
@@ -12,7 +13,8 @@
     "complexity": "low (single-agent, textual)",
     "prompt": "Are there any Italian restaurants in Rio de Janeiro?",
     "hint": [
-      "benchmark_hints.profile"
+      "benchmark_hints.profile",
+      "benchmark_hints.profile_location"
     ]
   },
   {
@@ -37,7 +39,8 @@
     "complexity": "low (single-agent, textual)",
     "prompt": "Which restaurants in São Paulo have more than 10k followers?",
     "hint": [
-      "benchmark_hints.profile"
+      "benchmark_hints.profile",
+      "benchmark_hints.profile_location"
     ]
   },
   {
@@ -47,6 +50,7 @@
     "rephrase": "What Italian restaurants in São Paulo have the most comments on their publication?",
     "hint": [
       "benchmark_hints.profile",
+      "benchmark_hints.profile_location",
       "public.publication"
     ]
   },
@@ -56,6 +60,7 @@
     "prompt": "Which restaurants in Balneário Camboriú post frequently about pasta?",
     "hint": [
       "benchmark_hints.profile",
+      "benchmark_hints.profile_location",
       "public.publication"
     ]
   },
@@ -120,6 +125,7 @@
     "prompt": "What are the average prices of dishes at São Paulo?",
     "hint": [
       "benchmark_hints.profile",
+      "benchmark_hints.profile_location",
       "public.publication"
     ]
   },
@@ -139,6 +145,7 @@
     "rephrase": "What is the exact nutritional breakdown of dishes served in restaurants located at Rio de Janeiro?",
     "hint": [
       "benchmark_hints.profile",
+      "benchmark_hints.profile_location",
       "public.publication"
     ]
   },
@@ -168,6 +175,7 @@
     "rephrase": "Which restaurant has more positive comments in São Paulo?",
     "hint": [
       "benchmark_hints.profile",
+      "benchmark_hints.profile_location",
       "public.comment"
     ]
   },
@@ -360,7 +368,8 @@
     "complexity": "low (single-agent, textual)",
     "prompt": "Which restaurants are located in Florianópolis?",
     "hint": [
-      "benchmark_hints.profile"
+      "benchmark_hints.profile",
+      "benchmark_hints.profile_location"
     ]
   },
   {
@@ -394,6 +403,7 @@
     "prompt": "Which steakhouses in Curitiba are most discussed in the comments?",
     "hint": [
       "benchmark_hints.profile",
+      "benchmark_hints.profile_location",
       "public.comment"
     ]
   },

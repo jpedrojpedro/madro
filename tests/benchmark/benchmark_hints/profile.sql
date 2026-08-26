@@ -8,7 +8,6 @@ SELECT pr.id,
        pr.num_following,
        pr.biography,
        pr.is_verified,
-       prl.location,
        CASE
            WHEN pri.id IS NOT NULL THEN 't'::text
            ELSE 'f'::text
@@ -22,7 +21,6 @@ SELECT pr.id,
        pr.biography_lexemes
 FROM profile pr
          LEFT JOIN benchmark_hints.profile_restaurant prr ON pr.id = prr.id
-         LEFT JOIN benchmark_hints.profile_location prl ON pr.id = prl.id
          LEFT JOIN benchmark_hints.profile_influencer pri ON pr.id = pri.id;
 
 alter materialized view benchmark_hints.profile owner to dowser;

@@ -52,6 +52,8 @@ _BENCHMARK_HINTS_SECTIONS = _sections(_BENCHMARK_HINTS_SCHEMA)
 def _benchmark_hints_section(table: str) -> str | None:
     if table == "profile":
         return _BENCHMARK_HINTS_SECTIONS.get("benchmark_hints.profile")
+    if table == "profile_location":
+        return _BENCHMARK_HINTS_SECTIONS.get("benchmark_hints.profile_location")
     if _ACCOUNT_PUBLICATION_RE.match(table):
         section = _BENCHMARK_HINTS_SECTIONS.get("benchmark_hints.<account>_publication")
         return section.replace("<account>_publication", table) if section else None
