@@ -42,7 +42,7 @@
   {
     "id": "Q09",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Which restaurants are similar to Tutto Nhoque?"
+    "prompt": "Which restaurants are similar to @tuttonhoque?"
   },
   {
     "id": "Q10",
@@ -122,7 +122,11 @@
   {
     "id": "Q25",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Which post from the @haight_clothing profile had the highest engagement?"
+    "prompt": "Which post from the @haight_clothing profile had the highest engagement?",
+    "hint": [
+      "benchmark_hints.haight_clothing_comment",
+      "benchmark_hints.haight_clothing_publication"
+    ]
   },
   {
     "id": "Q26",

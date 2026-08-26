@@ -5,11 +5,10 @@ from asgiref.sync import sync_to_async
 from madro.db import async_cursor
 from madro.models import Agent, ExecutionStatus, JobExecution, JobStatus
 import json
-import httpx
 from madro.workflows.normalizer import MultimodalNormalizer
 from madro.internal_agents.enrichment_agent import EnrichmentAgent
 from madro.data_wrappers import RetrievalOut, NormalizedArtifact
-from madro.retrieval_agents.loader import load_local_agent
+from madro.retrieval_agents.base import RetrievalAgent
 
 logger = logging.getLogger(__name__)
 
@@ -115,16 +114,8 @@ class AgentRunner:
             "username": username,
         }
 
-        raw = None
-        if agent.uri.startswith("local://"):
-            local_agent = load_local_agent(agent.uri)
-            raw = await local_agent.run(**payload)
-        else:
-            # NOTE: note being used
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(agent.uri, json=payload)
-                response.raise_for_status()
-                raw = response.json()
+        retrieval_agent = RetrievalAgent.from_uri(agent.uri, timeout=self.timeout)
+        raw = await retrieval_agent.run(**payload)
 
         retrieval_out = RetrievalOut.model_validate(raw)
         retrieval_out.provenance = {

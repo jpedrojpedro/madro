@@ -3,7 +3,7 @@ and the Allure benchmark suite (tests/benchmark/)."""
 
 from madro.models import Agent, AgentTopic
 from madro.internal_agents.topic_categorization_agent import categorize_and_assign
-from madro.retrieval_agents.loader import load_local_agent_class
+from madro.retrieval_agents.base import RetrievalAgent
 
 SEED_AGENTS: list[dict] = [
     {
@@ -104,7 +104,7 @@ def _identity_for(uri: str) -> dict | None:
     actual output schema."""
     if not uri.startswith("local://"):
         return None
-    agent_cls = load_local_agent_class(uri)
+    agent_cls = RetrievalAgent.local_class_from_uri(uri)
     return agent_cls.identity.model_dump(mode="json") if agent_cls.identity else None
 
 
