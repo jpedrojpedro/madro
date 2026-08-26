@@ -276,101 +276,181 @@
   {
     "id": "Q31",
     "complexity": "low (single-agent, textual)",
-    "prompt": "What are the main topics covered in @broxadasinistra publications?"
+    "prompt": "What are the main topics covered in @broxadasinistra publications?",
+    "rephrase": "What are the most frequent topics covered in @broxadasinistra publications?",
+    "hint": [
+      "benchmark_hints.broxadasinistra_publication"
+    ]
   },
   {
     "id": "Q32",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What are the main criticisms of @broxadasinistra publications?"
+    "prompt": "What are the main criticisms of @broxadasinistra publications?",
+    "rephrase": "What are the most frequent negative comments on @broxadasinistra publications?",
+    "hint": [
+      "benchmark_hints.broxadasinistra_comment"
+    ]
   },
   {
     "id": "Q33",
     "complexity": "out-of-scope (exception)",
-    "prompt": "Was any comment on @broxadasinistra publications flagged for any kind of intolerance (racial, gender-based, or religious)?"
+    "prompt": "Was any comment on @broxadasinistra publications flagged for any kind of intolerance (racial, gender-based, or religious)?",
+    "hint": [
+      "benchmark_hints.broxadasinistra_comment"
+    ]
   },
   {
     "id": "Q34",
     "complexity": "low (single-agent, textual)",
-    "prompt": "What is the best fitness tip given by the @eusougabriela profile?"
+    "prompt": "What is the best fitness tip given by the @eusougabriela profile?",
+    "rephrase": "What is the publication with the most positive comments on @eusougabriela profile?",
+    "hint": [
+      "benchmark_hints.eusougabriela_publication",
+      "benchmark_hints.eusougabriela_comment"
+    ]
   },
   {
     "id": "Q35",
     "complexity": "low (single-agent, textual)",
-    "prompt": "What are the best lifestyle tips given by the @eusougabriela profile?"
+    "prompt": "What are the best lifestyle tips given by the @eusougabriela profile?",
+    "hint": [
+      "benchmark_hints.eusougabriela_publication"
+    ]
   },
   {
     "id": "Q36",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What are the biggest criticisms of the content published by the @eusougabriela profile?"
+    "prompt": "What are the biggest criticisms of the content published by the @eusougabriela profile?",
+    "rephrase": "What are the most frequent negative comments on @eusougabriela publications?",
+    "hint": [
+      "benchmark_hints.eusougabriela_comment"
+    ]
   },
   {
     "id": "Q37",
     "complexity": "out-of-scope (exception)",
-    "prompt": "Which profile has the most followers in common with others?"
+    "prompt": "Which profile has the most followers in common with others?",
+    "rephrase": "What are the most frequent negative comments on @eusougabriela publications?",
+    "hint": [
+      "benchmark_hints.eusougabriela_comment"
+    ]
   },
   {
     "id": "Q38",
     "complexity": "out-of-scope (exception)",
-    "prompt": "Taking the comments into account, which profile suffers the most hate attacks?"
+    "prompt": "Taking the comments into account, which profile suffers the most hate attacks?",
+    "rephrase": "Taking the comments into account, which profile suffers the most frequent negative comments?",
+    "hint": [
+      "public.comment",
+      "public.profile"
+    ]
   },
   {
     "id": "Q39",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "I need to promote a high-end women's clothing brand — could you recommend profiles that fit that description?"
+    "prompt": "I need to promote a high-end women's clothing brand — could you recommend profiles that fit that description?",
+    "rephrase": "Which profiles focus on women's clothing and have similar description and number of followers of @haight_clothing?",
+    "hint": [
+      "public.publication",
+      "public.profile"
+    ]
   },
   {
     "id": "Q40",
     "complexity": "low (single-agent, textual)",
-    "prompt": "Which restaurants are located in Florianópolis?"
+    "prompt": "Which restaurants are located in Florianópolis?",
+    "hint": [
+      "benchmark_hints.profile"
+    ]
   },
   {
     "id": "Q41",
     "complexity": "low (single-agent, textual)",
-    "prompt": "Do any profiles mention vegan options in their biography?"
+    "prompt": "Do any profiles mention vegan options in their biography?",
+    "rephrase": "Do any restaurants mention vegan options in their biography?",
+    "hint": [
+      "benchmark_hints.profile"
+    ]
   },
   {
     "id": "Q42",
     "complexity": "low (single-agent, textual)",
-    "prompt": "Which restaurants have more than 5k followers?"
+    "prompt": "Which restaurants have more than 5k followers?",
+    "hint": [
+      "benchmark_hints.profile"
+    ]
   },
   {
     "id": "Q43",
     "complexity": "low (single-agent, textual)",
-    "prompt": "Which restaurants mention sushi in their profile?"
+    "prompt": "Which restaurants mention sushi in their profile?",
+    "hint": [
+      "benchmark_hints.profile"
+    ]
   },
   {
     "id": "Q44",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Which steakhouses in Curitiba are most discussed in the comments?"
+    "prompt": "Which steakhouses in Curitiba are most discussed in the comments?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.comment"
+    ]
   },
   {
     "id": "Q45",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Which bakeries are followed by influencers?"
+    "prompt": "Which bakeries are followed by influencers?",
+    "rephrase": "Which bakeries are followed by profiles with more than 50k followers?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.profile_relationship"
+    ]
   },
   {
     "id": "Q46",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Which profiles similar to @eusougabriela focus on fitness content?"
+    "prompt": "Which profiles similar to @eusougabriela focus on fitness content?",
+    "rephrase": "Which profiles have similar description and number of followers of @eusougabriela?",
+    "hint": [
+      "public.profile"
+    ]
   },
   {
     "id": "Q47",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Which restaurant's seafood posts receive the most comments?"
+    "prompt": "Which restaurant's seafood posts receive the most comments?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.comment"
+    ]
   },
   {
     "id": "Q48",
     "complexity": "out-of-scope (exception)",
-    "prompt": "Which restaurant will go viral next month?"
+    "prompt": "Which restaurant will go viral next month?",
+    "rephrase": "Which restaurant have been growing the number of comments on their most recent publications?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.comment"
+    ]
   },
   {
     "id": "Q49",
     "complexity": "out-of-scope (exception)",
-    "prompt": "What is the healthiest restaurant option according to medical guidelines?"
+    "prompt": "What is the healthiest restaurant option according to medical guidelines?",
+    "hint": [
+      "benchmark_hints.profile"
+    ]
   },
   {
     "id": "Q50",
     "complexity": "out-of-scope (exception)",
-    "prompt": "Which restaurant owner has the best personality?"
+    "prompt": "Which restaurant owner has the best personality?",
+    "rephrase": "Which profile is a restaurant owner and have the most positive comments on their publications?",
+    "hint": [
+      "public.profile",
+      "public.comment"
+    ]
   }
 ]
