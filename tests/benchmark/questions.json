@@ -2,127 +2,226 @@
   {
     "id": "Q01",
     "complexity": "low (single-agent, textual)",
-    "prompt": "What restaurants are near Balneário Camboriú?"
+    "prompt": "What restaurants are near Balneário Camboriú?",
+    "hint": [
+      "benchmark_hints.profile"
+    ]
   },
   {
     "id": "Q02",
     "complexity": "low (single-agent, textual)",
-    "prompt": "Are there any Italian restaurants in Rio de Janeiro?"
+    "prompt": "Are there any Italian restaurants in Rio de Janeiro?",
+    "hint": [
+      "benchmark_hints.profile"
+    ]
   },
   {
     "id": "Q03",
     "complexity": "low (single-agent, textual)",
-    "prompt": "Which restaurants mention pizza in their profile?"
+    "prompt": "Which restaurants mention pizza in their profile?",
+    "hint": [
+      "benchmark_hints.profile"
+    ]
   },
   {
     "id": "Q04",
     "complexity": "low (single-agent, textual)",
-    "prompt": "What restaurants are open on Wednesdays?"
+    "prompt": "What restaurants are open on Wednesdays?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.publication"
+    ]
   },
   {
     "id": "Q05",
     "complexity": "low (single-agent, textual)",
-    "prompt": "Which restaurants in São Paulo have more than 10k followers?"
+    "prompt": "Which restaurants in São Paulo have more than 10k followers?",
+    "hint": [
+      "benchmark_hints.profile"
+    ]
   },
   {
     "id": "Q06",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "What Italian restaurants in São Paulo are popular on Instagram?"
+    "prompt": "What Italian restaurants in São Paulo are popular on Social Media?",
+    "rephrase": "What Italian restaurants in São Paulo have the most comments on their publication?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.publication"
+    ]
   },
   {
     "id": "Q07",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Which restaurants in Balneário Camboriú post frequently about pasta?"
+    "prompt": "Which restaurants in Balneário Camboriú post frequently about pasta?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.publication"
+    ]
   },
   {
     "id": "Q08",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "What restaurants are followed by influencers?"
+    "prompt": "What restaurants are followed by influencers?",
+    "rephrase": "What restaurants are followed by profiles with more than 50k followers?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.profile_relationship"
+    ]
   },
   {
     "id": "Q09",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Which restaurants are similar to @tuttonhoque?"
+    "prompt": "Which restaurants are similar to @tuttonhoque?",
+    "rephrase": "Which restaurants have similar description and number of followers of @tuttonhoque?",
+    "hint": [
+      "benchmark_hints.profile"
+    ]
   },
   {
     "id": "Q10",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "What restaurants serve fish dishes?"
+    "prompt": "What restaurants serve fish dishes?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.publication"
+    ]
   },
   {
     "id": "Q11",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What Italian restaurants published their menu in 2025?"
+    "prompt": "What Italian restaurants published their menu in 2025?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.publication"
+    ]
   },
   {
     "id": "Q12",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What are Japanese restaurants main offered dishes?"
+    "prompt": "What are Japanese restaurants main offered dishes?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.publication"
+    ]
   },
   {
     "id": "Q13",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What Italian restaurants offer dishes with pancetta or prosciutto?"
+    "prompt": "What Italian restaurants offer dishes with pancetta or prosciutto?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.publication"
+    ]
   },
   {
     "id": "Q14",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What are the average prices of dishes at São Paulo?"
+    "prompt": "What are the average prices of dishes at São Paulo?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.publication"
+    ]
   },
   {
     "id": "Q15",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "Which restaurants posted daily specials in 2025?"
+    "prompt": "Which restaurants posted daily specials in 2025?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.publication"
+    ]
   },
   {
     "id": "Q16",
     "complexity": "out-of-scope (exception)",
-    "prompt": "What is the exact nutritional breakdown of dishes served nearby?"
+    "prompt": "What is the exact nutritional breakdown of dishes served nearby?",
+    "rephrase": "What is the exact nutritional breakdown of dishes served in restaurants located at Rio de Janeiro?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.publication"
+    ]
   },
   {
     "id": "Q17",
     "complexity": "out-of-scope (exception)",
-    "prompt": "Which restaurants will introduce new menu items next month?"
+    "prompt": "Which restaurants will introduce new menu items next month?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.publication"
+    ]
   },
   {
     "id": "Q18",
     "complexity": "out-of-scope (exception)",
-    "prompt": "What restaurants have the best taste according to customers?"
+    "prompt": "What restaurants have the best taste according to customers?",
+    "rephrase": "What restaurants have positive comments on their posts?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.comment"
+    ]
   },
   {
     "id": "Q19",
     "complexity": "out-of-scope (exception)",
-    "prompt": "Which restaurant is objectively the best in town?"
+    "prompt": "Which restaurant is objectively the best in town?",
+    "rephrase": "Which restaurant has more positive comments in São Paulo?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.comment"
+    ]
   },
   {
     "id": "Q20",
     "complexity": "out-of-scope (exception)",
-    "prompt": "What restaurants comply with all local health regulations?"
+    "prompt": "What restaurants comply with all local health regulations?",
+    "hint": [
+      "benchmark_hints.profile",
+      "public.publication"
+    ]
   },
   {
     "id": "Q21",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What is the perception of @haight_clothing profile based on comments?"
+    "prompt": "What is the perception of @haight_clothing profile based on comments?",
+    "rephrase": "What are the positive and negative comments done on @haight_clothing profile?",
+    "hint": [
+      "benchmark_hints.haight_clothing_comment"
+    ]
   },
   {
     "id": "Q22",
     "complexity": "out-of-scope (exception)",
-    "prompt": "What clothing items are most suitable for a beach wedding?"
+    "prompt": "What clothing items are most suitable for a beach wedding?",
+    "hint": [
+      "public.profile",
+      "public.publication"
+    ]
   },
   {
     "id": "Q23",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Does the @haight_clothing profile sell online?"
+    "prompt": "Does the @haight_clothing profile sell online?",
+    "hint": [
+      "public.profile",
+      "benchmark_hints.haight_clothing_publication"
+    ]
   },
   {
     "id": "Q24",
     "complexity": "medium (multi-agent, textual)",
-    "prompt": "Which influencers follow the @haight_clothing brand?"
+    "prompt": "Which influencers follow the @haight_clothing brand?",
+    "rephrase": "What profiles with more than 50k followers follow the @haight_clothing brand?",
+    "hint": [
+      "public.profile",
+      "public.profile_relationship"
+    ]
   },
   {
     "id": "Q25",
     "complexity": "medium (multi-agent, textual)",
     "prompt": "Which post from the @haight_clothing profile had the highest engagement?",
+    "rephrase": "Which publication from the @haight_clothing profile had the highest number of comments?",
     "hint": [
       "benchmark_hints.haight_clothing_comment",
       "benchmark_hints.haight_clothing_publication"
@@ -131,27 +230,48 @@
   {
     "id": "Q26",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "Has there been any recent crisis or complaints from @fluminensefc fanbase?"
+    "prompt": "Has there been any recent crisis or complaints from @fluminensefc fanbase?",
+    "rephrase": "Has there been any recent negative comments on @fluminensefc publications?",
+    "hint": [
+      "benchmark_hints.fluminensefc_comment",
+      "benchmark_hints.fluminensefc_publication"
+    ]
   },
   {
     "id": "Q27",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "What was @fluminensefc last match?"
+    "prompt": "What was @fluminensefc last match?",
+    "hint": [
+      "benchmark_hints.fluminensefc_publication"
+    ]
   },
   {
     "id": "Q28",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "Who is @fluminensefc most beloved player?"
+    "prompt": "Who is @fluminensefc most beloved player?",
+    "rephrase": "What player from @fluminensefc has the most positive comments?",
+    "hint": [
+      "benchmark_hints.fluminensefc_comment",
+      "benchmark_hints.fluminensefc_publication"
+    ]
   },
   {
     "id": "Q29",
     "complexity": "low (single-agent, textual)",
-    "prompt": "How do I become an official member (sócio-torcedor) of @fluminensefc?"
+    "prompt": "How do I become an official member (sócio-torcedor) of @fluminensefc?",
+    "hint": [
+      "benchmark_hints.fluminensefc_publication"
+    ]
   },
   {
     "id": "Q30",
     "complexity": "high (multi-modal, temporal)",
-    "prompt": "Which post did people find funniest from @broxadasinistra?"
+    "prompt": "Which post did people find funniest from @broxadasinistra?",
+    "rephrase": "Which publication from @broxadasinistra has the most positive comments?",
+    "hint": [
+      "benchmark_hints.broxadasinistra_comment",
+      "benchmark_hints.broxadasinistra_publication"
+    ]
   },
   {
     "id": "Q31",
