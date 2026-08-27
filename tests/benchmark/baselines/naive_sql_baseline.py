@@ -60,6 +60,11 @@ Rules:
   otherwise a sensible fallback such as recency (published_at) or
   engagement (num_followers / num_likes / num_comments) — only the top of
   your ordering will be used.
+- Every `*_lexemes` tsvector column uses the custom `pt_en` text search
+  configuration. Always write `to_tsquery('pt_en', ...)` against them —
+  never `'english'` or `'portuguese'` alone — regardless of whether your
+  search terms are in English or Portuguese; querying with a different
+  configuration than the column was built with can silently miss matches.
 - End with LIMIT 10.
 - If the request cannot be answered from this schema (e.g. it depends on
   what is visually shown in an image), still write your best-effort query

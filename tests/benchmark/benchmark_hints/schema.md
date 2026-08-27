@@ -61,7 +61,7 @@ rule), with one addition over `public.comment`:
 
 | column               | type     | notes |
 |-----------------------|----------|-------|
-| `annotation_lexemes`  | tsvector | `to_tsvector('portuguese', emoji_replace(annotation))` — **`public.comment` has no full-text index on `annotation` at all; this view does.** Search with `annotation_lexemes @@ to_tsquery('portuguese', ...)`, ranked with `ts_rank(annotation_lexemes, query)`. |
+| `annotation_lexemes`  | tsvector | `to_tsvector('pt_en', emoji_replace(annotation))` — same custom config as `profile.biography_lexemes`/`publication.description_lexemes`. **`public.comment` has no full-text index on `annotation` at all; this view does.** Search with `annotation_lexemes @@ to_tsquery('pt_en', ...)`, ranked with `ts_rank(annotation_lexemes, query)`. |
 
 All other columns (`id`, `profile_id`, `publication_id`, `annotation`,
 `num_likes`, `visited_at`, `reply_to`, `published_at`) match `public.comment`.

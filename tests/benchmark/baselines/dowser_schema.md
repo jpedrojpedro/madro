@@ -26,8 +26,12 @@ One row per Instagram profile/account.
 | `enriched_at`       | timestamp | timestamp of a downstream enrichment pass over this profile. |
 | `biography_lexemes` | tsvector  | auto-populated by trigger from `biography` (`to_tsvector('pt_en', ...)`) — **use this, not `biography`, for full-text search**; GIN-indexed (`profile_biography_lexemes_idx`). |
 
-Full-text search pattern: `WHERE biography_lexemes @@ to_tsquery('english', ...)`,
-ranked with `ts_rank(biography_lexemes, query)`.
+Full-text search pattern: `WHERE biography_lexemes @@ to_tsquery('pt_en', ...)`,
+ranked with `ts_rank(biography_lexemes, query)`. `pt_en` is a custom search
+configuration (not the built-in `english` or `portuguese`) — always query
+with `to_tsquery('pt_en', ...)` here, regardless of whether your search
+terms are in English or Portuguese; a mismatched configuration's stemming
+and stopwords can silently miss matches.
 
 ## `profile_relationship`
 
@@ -59,7 +63,10 @@ One row per post (image, video, or carousel).
 | `published_at`        | timestamp | actual post date — use this for date-range questions, not `visited_at`. |
 | `num_likes`           | bigint    | |
 | `num_comments`        | bigint    | |
-| `description_lexemes` | tsvector | auto-populated by trigger from `description` — **use this, not `description`, for full-text search**; GIN-indexed (`publication_description_lexemes_idx`). |
+| `description_lexemes` | tsvector | auto-populated by trigger from `description` (`to_tsvector('pt_en', ...)`, same config as `profile.biography_lexemes`) — **use this, not `description`, for full-text search**; GIN-indexed (`publication_description_lexemes_idx`). |
+
+Full-text search pattern: `WHERE description_lexemes @@ to_tsquery('pt_en', ...)`,
+ranked with `ts_rank(description_lexemes, query)`.
 
 ## `publication_collab`
 
