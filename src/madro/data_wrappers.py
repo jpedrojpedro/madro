@@ -62,6 +62,10 @@ class EnrichedPrompt(BaseModel):
     rewritten_prompt: str
 
 
+class TranslatedPrompt(BaseModel):
+    translated_prompt: str
+
+
 class SubDemand(BaseModel):
     demand: str
     topic_name: str

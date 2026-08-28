@@ -22,7 +22,7 @@ class SemanticOpinionFetcherAgent(RetrievalAgent):
     identity = EntityRef(field="publication_id", kind="publication")
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
-        sample = kwargs.get("sample") or 10
+        sample = kwargs.get("sample") or 25
         date_from = kwargs.get("date_from")
         date_to = kwargs.get("date_to")
         username = kwargs.get("username")

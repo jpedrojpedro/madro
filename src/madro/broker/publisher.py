@@ -1,10 +1,9 @@
-from madro.models import AgentTopic, JobExecution, Message, Thread, Topic
+from madro.models import AgentTopic, JobExecution, Message, MessageRole, Thread, Topic
 from madro.data_wrappers import DecomposedDemand
 
 
 async def publish(
     thread: Thread,
-    demand_message: Message,
     decomposed: DecomposedDemand,
 ) -> list[JobExecution]:
     topic_names = [sd.topic_name for sd in decomposed.sub_demands]
@@ -15,16 +14,29 @@ async def publish(
     }
 
     jobs: list[JobExecution] = []
+    sequence_number = await Message.objects.filter(thread=thread).acount()
 
     for sub_demand in decomposed.sub_demands:
         topic = topics.get(sub_demand.topic_name)
         if not topic:
             continue
 
+        # Each sub-demand gets its own Message row (rather than reusing
+        # demand_message, the raw pre-decomposition prompt) so every
+        # JobExecution/retrieval agent actually sees its own focused,
+        # localized sub-demand text — not the undecomposed original.
+        sequence_number += 1
+        sub_demand_message = await Message.objects.acreate(
+            thread=thread,
+            role=MessageRole.SYSTEM,
+            content=sub_demand.demand,
+            sequence_number=sequence_number,
+        )
+
         async for agent_topic in AgentTopic.objects.filter(topic=topic, is_active=True).select_related("agent"):
             job = JobExecution(
                 thread=thread,
-                demand=demand_message,
+                demand=sub_demand_message,
                 topic=topic,
                 agent=agent_topic.agent,
             )

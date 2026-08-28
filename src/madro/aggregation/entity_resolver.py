@@ -4,11 +4,11 @@ class EntityResolver:
     rather than one key guessed by intersecting field names across every artifact in the thread."""
 
     def resolve(
-        self, lex_by_artifact: dict[str, tuple[float, dict | None, list[dict]]]
+        self, records_by_artifact: dict[str, tuple[dict | None, list[dict]]]
     ) -> dict[str, tuple[list[str], dict]]:
         entities: dict[str, tuple[list[str], dict]] = {}
 
-        for artifact_id, (_, identity, records) in lex_by_artifact.items():
+        for artifact_id, (identity, records) in records_by_artifact.items():
             for idx, record in enumerate(records):
                 if identity and record.get(identity["field"]) is not None:
                     eid = f"{identity['kind']}:{record[identity['field']]}"
@@ -23,6 +23,14 @@ class EntityResolver:
                 artifact_ids, merged = entities[eid]
                 if artifact_id not in artifact_ids:
                     artifact_ids.append(artifact_id)
-                entities[eid] = (artifact_ids, {**merged, **record})
+                merged_record = {**merged, **record}
+                # A plain {**merged, **record} spread would let whichever record
+                # merges in last silently overwrite rnk (each agent's own
+                # retrieval-time ts_rank score, reused as-is for s_lex — see
+                # RelevanceRanker) — keep the max seen across every record
+                # contributing to this entity instead of an arbitrary one.
+                if "rnk" in merged and "rnk" in record:
+                    merged_record["rnk"] = max(merged["rnk"], record["rnk"])
+                entities[eid] = (artifact_ids, merged_record)
 
         return entities

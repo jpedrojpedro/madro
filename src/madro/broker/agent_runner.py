@@ -103,7 +103,7 @@ class AgentRunner:
         cleaned = (demand[:match.start()] + demand[match.end():]).strip()
         return cleaned, match.group(1)
 
-    async def invoke(self, job: JobExecution, sample: int = 10) -> NormalizedArtifact:
+    async def invoke(self, job: JobExecution, sample: int = 25) -> NormalizedArtifact:
         agent: Agent = job.agent
         demand, username = self._extract_mentioned_username(job.demand.content)
         payload = {

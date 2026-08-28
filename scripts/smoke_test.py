@@ -78,9 +78,12 @@ async def _run_task(task_prompt: str) -> None:
     # ------------------------------------------------------------------
     _print_section("Step 2 · JobExecution queue (published rows)")
 
+    # publisher.py points each JobExecution.demand at its own per-sub-demand
+    # Message (focused, localized text) — not at user_message, the raw
+    # pre-decomposition prompt — so jobs are found via thread instead.
     jobs = [
         job async for job in JobExecution.objects.filter(
-            demand=user_message
+            thread=thread
         ).select_related("agent", "demand")
     ]
 

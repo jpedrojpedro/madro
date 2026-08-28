@@ -49,7 +49,7 @@ SEED_AGENTS: list[dict] = [
         "mcp_schema": {
             "type": "object",
             "properties": {
-                "sample": {"type": "integer", "description": "Max number of comments to fetch", "default": 10},
+                "sample": {"type": "integer", "description": "Max number of comments to fetch", "default": 25},
                 "date_from": {"type": "string", "description": "Filter comments published on or after this date (ISO 8601)"},
                 "date_to": {"type": "string", "description": "Filter comments published on or before this date (ISO 8601)"},
             },
@@ -67,7 +67,7 @@ SEED_AGENTS: list[dict] = [
         "mcp_schema": {
             "type": "object",
             "properties": {
-                "sample": {"type": "integer", "description": "Max number of files to fetch", "default": 10},
+                "sample": {"type": "integer", "description": "Max number of files to fetch", "default": 25},
                 "date_from": {"type": "string", "description": "Filter files from publications on or after this date (ISO 8601)"},
                 "date_to": {"type": "string", "description": "Filter files from publications on or before this date (ISO 8601)"},
             },
@@ -88,7 +88,7 @@ SEED_AGENTS: list[dict] = [
         "mcp_schema": {
             "type": "object",
             "properties": {
-                "sample": {"type": "integer", "description": "Max number of results to fetch", "default": 10},
+                "sample": {"type": "integer", "description": "Max number of results to fetch", "default": 25},
                 "min_followers": {"type": "integer", "description": "Minimum follower count for a profile to be considered an influencer", "default": 10000},
             },
             "required": [],

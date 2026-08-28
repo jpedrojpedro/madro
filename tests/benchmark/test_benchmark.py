@@ -134,9 +134,14 @@ async def _run_question(prompt: str, pipeline: Pipeline) -> None:
     assert user_message.id is not None
 
     with allure.step("Job queue"):
+        # publisher.py creates one Message per sub-demand (its own focused,
+        # localized text) and points each JobExecution.demand at that — not at
+        # user_message, the raw pre-decomposition prompt — so jobs for this
+        # question are found via thread, the relationship every sub-demand's
+        # jobs still share.
         jobs = [
             job
-            async for job in JobExecution.objects.filter(demand=user_message).select_related(
+            async for job in JobExecution.objects.filter(thread=thread).select_related(
                 "agent", "demand"
             )
         ]

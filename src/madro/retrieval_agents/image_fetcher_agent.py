@@ -18,7 +18,7 @@ class ImageFetcherAgent(RetrievalAgent):
     identity = EntityRef(field="publication_id", kind="publication")
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
-        sample = kwargs.get("sample") or 10
+        sample = kwargs.get("sample") or 25
         date_from = kwargs.get("date_from")
         date_to = kwargs.get("date_to")
         username = kwargs.get("username")
@@ -27,6 +27,12 @@ class ImageFetcherAgent(RetrievalAgent):
         # its profile id, so that profile's images are folded into the
         # lexical results and bumped to the top instead of relying solely on
         # the caption text matching the demand.
+        #
+        # description_lexemes is built with the custom `pt_en` text search
+        # configuration (handles both English and Portuguese search terms
+        # against this mostly-Portuguese content) — query with the same
+        # configuration, never 'english'/'portuguese' alone, or matches are
+        # silently missed.
         params = [username, demand, ['jpg']]
         date_clauses = []
         if date_from:
@@ -42,10 +48,10 @@ class ImageFetcherAgent(RetrievalAgent):
             SELECT id FROM public.profile WHERE username = %s
         ), search_setup AS (
             SELECT to_tsquery(
-                'english',
+                'pt_en',
                 array_to_string(
                     tsvector_to_array(
-                        to_tsvector('english', %s)
+                        to_tsvector('pt_en', %s)
                     ),
                     ' | '
                 )

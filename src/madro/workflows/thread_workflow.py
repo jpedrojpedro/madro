@@ -1,6 +1,7 @@
 from uuid import UUID
 from madro.models import Thread, Message, MessageRole
 from madro.internal_agents.interactive_agent import enrich_prompt
+from madro.internal_agents.language_normalizer import normalize_language
 from madro.internal_agents.demand_categorization_agent import decompose_demand
 from madro.broker.publisher import publish
 from madro.data_wrappers import DecomposedDemand
@@ -22,7 +23,13 @@ async def run_thread(thread_id: UUID | None, task_prompt: str) -> tuple[Thread, 
     )
 
     enriched = await enrich_prompt(task_prompt)
-    decomposed = await decompose_demand(enriched)
+    # Stands in for part of what a real, not-yet-implemented Clarification
+    # Agent would do — dowser's corpus is majority Portuguese, so decomposition
+    # and every retrieval agent's lexical search need the demand in that
+    # language too; only the persisted, user-facing message below keeps the
+    # enriched prompt in its original language.
+    localized = await normalize_language(enriched)
+    decomposed = await decompose_demand(localized)
 
     await Message.objects.acreate(
         thread=thread,
@@ -31,6 +38,6 @@ async def run_thread(thread_id: UUID | None, task_prompt: str) -> tuple[Thread, 
         sequence_number=last_sequence + 2,
     )
 
-    await publish(thread, user_message, decomposed)
+    await publish(thread, decomposed)
 
     return thread, user_message, decomposed

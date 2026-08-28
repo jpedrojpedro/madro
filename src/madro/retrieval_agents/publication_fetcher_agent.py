@@ -19,22 +19,28 @@ class PublicationFetcherAgent(RetrievalAgent):
     identity = EntityRef(field="publication_id", kind="publication")
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
-        sample = kwargs.get("sample") if kwargs.get("sample") else 10
+        sample = kwargs.get("sample") if kwargs.get("sample") else 25
         username = kwargs.get("username")
 
         # mentioned_profile resolves an explicit @username mention (if any) to
         # its profile id, so that profile's publications are folded into the
         # lexical results and bumped to the top instead of relying solely on
         # the caption text matching the demand.
+        #
+        # description_lexemes is built with the custom `pt_en` text search
+        # configuration (handles both English and Portuguese search terms
+        # against this mostly-Portuguese content) — query with the same
+        # configuration, never 'english'/'portuguese' alone, or matches are
+        # silently missed.
         query = sql.SQL("""
         WITH mentioned_profile AS (
             SELECT id FROM public.profile WHERE username = %s
         ), search_setup AS (
             SELECT to_tsquery(
-                'english',
+                'pt_en',
                 array_to_string(
                     tsvector_to_array(
-                        to_tsvector('english', %s)
+                        to_tsvector('pt_en', %s)
                     ),
                     ' | '
                 )

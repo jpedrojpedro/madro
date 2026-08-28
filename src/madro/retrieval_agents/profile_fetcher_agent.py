@@ -18,7 +18,7 @@ class ProfileFetcherAgent(RetrievalAgent):
     identity = EntityRef(field="profile_id", kind="profile")
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
-        sample = kwargs.get("sample") if kwargs.get("sample") else 10
+        sample = kwargs.get("sample") if kwargs.get("sample") else 25
         username = kwargs.get("username")
 
         # mentioned_profile resolves an explicit @username mention (if any) to
@@ -26,15 +26,21 @@ class ProfileFetcherAgent(RetrievalAgent):
         # against it NULL, so the lexical search below is unaffected; when it
         # does resolve, that profile is folded into the results and bumped to
         # the top instead of relying solely on a bio-text match.
+        #
+        # biography_lexemes is built with the custom `pt_en` text search
+        # configuration (handles both English and Portuguese search terms
+        # against this mostly-Portuguese content) — query with the same
+        # configuration, never 'english'/'portuguese' alone, or matches are
+        # silently missed.
         query = sql.SQL("""
         WITH mentioned_profile AS (
             SELECT id FROM public.profile WHERE username = %s
         ), search_setup AS (
             SELECT to_tsquery(
-                'english',
+                'pt_en',
                 array_to_string(
                     tsvector_to_array(
-                        to_tsvector('english', %s)
+                        to_tsvector('pt_en', %s)
                     ),
                     ' | '
                 )
