@@ -53,10 +53,17 @@ cover/
 
 # Allure Report
 allure-results/
+allure-results-history/
 allure-report/
-comparison_results.json
-comparison_grid.xlsx
-comparison_grid_vertical.xlsx
+
+# General Report
+general-results/
+general-results-history/
+scripts/export_baseline_xlsx.py
+scripts/export_comparison_xlsx.py
+scripts/export_ground_truth_xlsx.py
+scripts/export_madro_xlsx.py
+scripts/export_questions_xlsx.py
 
 # Translations
 *.mo
