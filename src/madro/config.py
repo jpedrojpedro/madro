@@ -104,6 +104,10 @@ def get_retrieval_sql_model() -> OpenAIChatModel:
 GEMINI_MIN_INTERVAL_SECONDS = 4.0
 GEMINI_MAX_RETRIES = 5
 GEMINI_RETRY_BACKOFF_SECONDS = 5.0
+# 429 (rate limit) and 503 ("high demand", per Gemini's own error message —
+# a transient outage, not a request problem) are both worth retrying;
+# anything else (4xx like a bad request) is a real error, not transient.
+GEMINI_RETRYABLE_STATUS_CODES = {429, 503}
 
 _rate_limit_lock = asyncio.Lock()
 _last_call_at: float | None = None
@@ -124,7 +128,7 @@ async def _throttle() -> None:
 async def run_agent(agent: Agent, prompt: str) -> Any:
     """
     Runs a pydantic_ai Agent against Gemini with rate-limit throttling and
-    429 retry — use this instead of calling agent.run() directly wherever
+    429/503 retry — use this instead of calling agent.run() directly wherever
     get_model() is used, so callers don't each need their own backoff logic.
     """
     for attempt in range(1, GEMINI_MAX_RETRIES + 1):
@@ -132,11 +136,11 @@ async def run_agent(agent: Agent, prompt: str) -> Any:
         try:
             return await agent.run(prompt)
         except ModelHTTPError as exc:
-            if exc.status_code != 429 or attempt == GEMINI_MAX_RETRIES:
+            if exc.status_code not in GEMINI_RETRYABLE_STATUS_CODES or attempt == GEMINI_MAX_RETRIES:
                 raise
             backoff = GEMINI_RETRY_BACKOFF_SECONDS * (2 ** (attempt - 1))
             logger.warning(
-                "Gemini rate limit hit (attempt %d/%d), retrying in %.0fs",
-                attempt, GEMINI_MAX_RETRIES, backoff,
+                "Gemini error (status %d, attempt %d/%d), retrying in %.0fs",
+                exc.status_code, attempt, GEMINI_MAX_RETRIES, backoff,
             )
             await asyncio.sleep(backoff)
