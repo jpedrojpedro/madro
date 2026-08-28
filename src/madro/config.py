@@ -98,10 +98,11 @@ def get_retrieval_sql_model() -> OpenAIChatModel:
     return OpenAIChatModel(cfg.retrieval_sql_model.name, provider=provider)
 
 
-# Gemini's free tier caps at 15 requests/minute; a single benchmark question
-# already fires ~3 Gemini calls (enrich, decompose, synthesize) back-to-back,
-# so a full run easily bursts past that without throttling.
-GEMINI_MIN_INTERVAL_SECONDS = 4.0
+# Paid tier: 4,000 requests/minute — was 4.0s (free tier's 15 req/min) before
+# billing was enabled. A tiny non-zero floor still protects against a literal
+# simultaneous burst (retrieval jobs can run concurrently, all sharing this
+# same throttle), without meaningfully pacing anything at this quota.
+GEMINI_MIN_INTERVAL_SECONDS = 60 / 4000
 GEMINI_MAX_RETRIES = 5
 GEMINI_RETRY_BACKOFF_SECONDS = 5.0
 # 429 (rate limit) and 503 ("high demand", per Gemini's own error message —

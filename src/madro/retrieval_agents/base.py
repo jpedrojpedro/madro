@@ -3,10 +3,10 @@ from abc import ABC, abstractmethod
 
 import httpx
 
-from madro.config import get_model
+from madro.config import get_model, run_agent
 from madro.retrieval_agents.identity import EntityRef
 from madro.retrieval_agents.schema_scope import build_scoped_schema
-from madro.sql_generation import NaiveSQLBaseline, plain_runner
+from madro.sql_generation import NaiveSQLBaseline
 
 
 class RetrievalAgent(ABC):
@@ -50,8 +50,7 @@ class RetrievalAgent(ABC):
         them the way the old fixed SQL templates once did."""
         resolver = NaiveSQLBaseline(
             model=get_model(),
-            runner=plain_runner,
-            use_native_output=True,
+            runner=run_agent,
             schema_doc=build_scoped_schema(tables),
             result_limit=sample,
         )
