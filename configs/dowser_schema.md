@@ -19,11 +19,7 @@ One row per Instagram profile/account.
 | `num_followers`     | bigint    | |
 | `num_following`     | bigint    | |
 | `biography`         | text      | free-text bio. |
-| `profile_pic_url`   | text      | |
-| `visited_at`        | timestamp | when this profile was last scraped. |
-| `is_brand`          | boolean   | |
 | `is_verified`       | boolean   | |
-| `enriched_at`       | timestamp | timestamp of a downstream enrichment pass over this profile. |
 | `biography_lexemes` | tsvector  | auto-populated by trigger from `biography` (`to_tsvector('pt_en', ...)`) — **use this, not `biography`, for full-text search**; GIN-indexed (`profile_biography_lexemes_idx`). |
 
 Full-text search pattern: `WHERE biography_lexemes @@ to_tsquery('pt_en', ...)`,
@@ -42,7 +38,6 @@ Follow graph edges. Composite PK `(origin_profile_id, edge, destination_profile_
 | `origin_profile_id`       | bigint FK → `profile.id` | the follower. |
 | `edge`                    | enum `edge_type` | only value today: `'follows'`. |
 | `destination_profile_id`  | bigint FK → `profile.id` | the profile being followed. |
-| `visited_at`              | timestamp | |
 
 To find who follows a profile: `origin_profile_id` where `destination_profile_id = <target>`.
 To find who a profile follows: `destination_profile_id` where `origin_profile_id = <target>`.
@@ -52,15 +47,14 @@ To find who a profile follows: `destination_profile_id` where `origin_profile_id
 One row per post (image, video, or carousel).
 
 | column                | type      | notes |
-|------------------------|-----------|-------|
+|------------------------|-----------|------|
 | `id`                  | bigint PK | |
 | `slug`                | text      | |
 | `url`                 | text      | |
 | `type`                | enum `media_type` | `GraphImage`, `GraphSidecar` (carousel), `GraphVideo`. |
 | `description`         | text      | the post caption. |
 | `profile_id`          | bigint FK → `profile.id` | the primary author/owner of the post. |
-| `visited_at`          | timestamp | scrape time. |
-| `published_at`        | timestamp | actual post date — use this for date-range questions, not `visited_at`. |
+| `published_at`        | timestamp | actual post date — use this for date-range questions. |
 | `num_likes`           | bigint    | |
 | `num_comments`        | bigint    | |
 | `description_lexemes` | tsvector | auto-populated by trigger from `description` (`to_tsvector('pt_en', ...)`, same config as `profile.biography_lexemes`) — **use this, not `description`, for full-text search**; GIN-indexed (`publication_description_lexemes_idx`). |
@@ -81,15 +75,14 @@ its own `profile_id` or a collaborator here — check both.
 Comments on publications, with reply threading.
 
 | column           | type      | notes |
-|-------------------|-----------|-------|
+|-------------------|-----------|------|
 | `id`             | bigint PK | |
 | `profile_id`     | bigint FK → `profile.id` | comment author. |
 | `publication_id` | bigint FK → `publication.id` | post being commented on. |
 | `annotation`     | text, not null | the comment text. |
-| `num_likes`      | bigint    | |
-| `visited_at`     | timestamp | |
+| `num_likes`      | bigint | |
 | `reply_to`       | bigint FK → `comment.id`, nullable | null for top-level comments. |
-| `published_at`   | timestamp | |
+| `published_at`   | timestamp | actual comment date — use this for date-range questions. |
 
 No `tsvector`/full-text index on `annotation` — filter/sort on it with plain
 `ILIKE` or just order by recency/likes if a demand needs comments.
@@ -100,7 +93,7 @@ Binary media attached to a publication (used for images passed through
 MADRO's own OCR/captioning — the raw bytes are not text-searchable at all).
 
 | column           | type      | notes |
-|-------------------|-----------|-------|
+|-------------------|-----------|------|
 | `id`             | bigserial PK | |
 | `name`           | text      | |
 | `extension`      | enum `file_extension` | `mp4`, `jpg`, `json`, `txt`. |

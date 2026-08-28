@@ -71,8 +71,8 @@ def parse_schema_sections(markdown: str) -> dict[str, str]:
 
 
 SQL_GENERATION_SP = """
-You are a naive SQL analyst. Write a single, read-only PostgreSQL query
-against the `dowser` database described below, whose result set — taken in
+You are a SQL expert. Write a single, read-only PostgreSQL query
+against the database schema described below, whose result set — taken in
 the order you return it — answers the user's request. If your query fails
 to execute, or executes but returns zero rows, you will be shown that and
 asked to try again, up to a handful of attempts — but still aim to get it

@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 import httpx
 
-from madro.config import get_retrieval_sql_model
+from madro.config import get_model
 from madro.retrieval_agents.identity import EntityRef
 from madro.retrieval_agents.schema_scope import build_scoped_schema
 from madro.sql_generation import NaiveSQLBaseline, plain_runner
@@ -49,7 +49,7 @@ class RetrievalAgent(ABC):
         scoping, identity aliasing, provenance capture) can't drift between
         them the way the old fixed SQL templates once did."""
         resolver = NaiveSQLBaseline(
-            model=get_retrieval_sql_model(),
+            model=get_model(),
             runner=plain_runner,
             use_native_output=True,
             schema_doc=build_scoped_schema(tables),
