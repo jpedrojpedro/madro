@@ -115,11 +115,28 @@ def _read_json_attachment(allure_dir: Path, result: dict, name: str) -> dict | l
 
 
 def _select_run(entries: list[dict], run_at: str | None) -> tuple[list[dict], str | None]:
+    """Filters to the entries sharing one run_at, then — since resuming a
+    partial/broken run under that same run_at (`make benchmark
+    RUN_TIMESTAMP=... K="30 to 30"`) adds a second Allure result for
+    whichever question(s) were retried, rather than replacing the first —
+    keeps only the most recently executed entry per question (`story`),
+    by Allure's own `stop` timestamp. `Path.glob()`'s enumeration order is
+    filesystem-dependent, not chronological, so callers iterating entries
+    as-is would otherwise silently keep whichever of the two glob happened
+    to list last."""
     if not entries:
         return [], None
     if run_at is None:
         run_at = max(e["_parameters"].get("run_at", "") for e in entries)
-    return [e for e in entries if e["_parameters"].get("run_at") == run_at], run_at
+    matching = [e for e in entries if e["_parameters"].get("run_at") == run_at]
+
+    latest_by_story: dict[str, dict] = {}
+    for entry in matching:
+        story = entry["_labels"].get("story")
+        current = latest_by_story.get(story)
+        if current is None or entry.get("stop", 0) > current.get("stop", 0):
+            latest_by_story[story] = entry
+    return list(latest_by_story.values()), run_at
 
 
 def _identity_str(record: dict) -> str | None:

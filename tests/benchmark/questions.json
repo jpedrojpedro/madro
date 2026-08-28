@@ -114,6 +114,7 @@
     "id": "Q13",
     "complexity": "high (multi-modal, temporal)",
     "prompt": "What Italian restaurants offer dishes with pancetta or prosciutto?",
+    "rephrase": "Which Italian restaurant profiles are known for serving dishes with pancetta or prosciutto?",
     "hint": [
       "benchmark_hints.profile",
       "public.publication"
@@ -133,6 +134,7 @@
     "id": "Q15",
     "complexity": "high (multi-modal, temporal)",
     "prompt": "Which restaurants posted daily specials in 2025?",
+    "rephrase": "Which restaurant profiles posted about daily specials at any point in 2025?",
     "hint": [
       "benchmark_hints.profile",
       "public.publication"
@@ -153,6 +155,7 @@
     "id": "Q17",
     "complexity": "out-of-scope (exception)",
     "prompt": "Which restaurants will introduce new menu items next month?",
+    "rephrase": "Which restaurant profiles have recently announced upcoming new menu items?",
     "hint": [
       "benchmark_hints.profile",
       "public.publication"
@@ -267,6 +270,7 @@
     "id": "Q29",
     "complexity": "low (single-agent, textual)",
     "prompt": "How do I become an official member (sócio-torcedor) of @fluminensefc?",
+    "rephrase": "Which publication from @fluminensefc explains how to become an official member (sócio-torcedor)?",
     "hint": [
       "benchmark_hints.fluminensefc_publication"
     ]

@@ -124,6 +124,17 @@ async def _seed_agent(spec: dict) -> Agent:
         topics = await categorize_and_assign(agent)
         print(f"  Created  : {agent.name} → topics: {[t.name for t in topics]}")
     else:
+        # get_or_create's `defaults` only apply on insert — an existing row
+        # would otherwise keep a stale `identity` forever once the
+        # RetrievalAgent subclass's declared identity changes underneath it,
+        # silently violating the "can never drift" invariant _identity_for()
+        # documents.
+        current_identity = _identity_for(spec["uri"])
+        if agent.identity != current_identity:
+            agent.identity = current_identity
+            await agent.asave(update_fields=["identity"])
+            print(f"  Re-synced identity: {agent.name} → {current_identity}")
+
         topics = [
             at.topic
             async for at in AgentTopic.objects.filter(agent=agent).select_related("topic")

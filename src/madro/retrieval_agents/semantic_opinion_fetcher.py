@@ -5,9 +5,16 @@ SCOPED_TABLES = ["comment", "publication", "profile"]
 
 
 class SemanticOpinionFetcherAgent(RetrievalAgent):
-    # comment_id is deliberately not declared here — it's this record's own row
-    # id, and nothing else in the system would ever join on it.
-    identity = EntityRef(field="publication_id", kind="publication")
+    # publication_id is the primary identity — a comment merges into its
+    # publication's entity when some other artifact in the thread already
+    # produced one. When none did, EntityResolver falls back to comment_id
+    # instead of forcing the comment into a publication entity nothing else
+    # in the thread surfaced. See docs/adr/0005-conditional-collapse-for-comment-identity.md.
+    identity = EntityRef(
+        field="publication_id",
+        kind="publication",
+        fallback=EntityRef(field="comment_id", kind="comment"),
+    )
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample") or 25
