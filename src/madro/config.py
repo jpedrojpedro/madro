@@ -38,6 +38,7 @@ class AppConfig(BaseModel):
     image_model: ModelConfig = ModelConfig()
     qwen_baseline_model: ModelConfig = ModelConfig(name="qwen2.5-coder:7b")
     llama_baseline_model: ModelConfig = ModelConfig(name="llama3.1:8b")
+    retrieval_sql_model: ModelConfig = ModelConfig(name="a-kore/Arctic-Text2SQL-R1-7B")
     fusion: FusionConfig = FusionConfig()
     debug: DebugConfig = DebugConfig()
 
@@ -84,6 +85,17 @@ def get_llama_model() -> OpenAIChatModel:
     cfg = load_config()
     provider = OpenAIProvider(base_url=OLLAMA_BASE_URL, api_key="ollama")
     return OpenAIChatModel(cfg.llama_baseline_model.name, provider=provider)
+
+
+def get_retrieval_sql_model() -> OpenAIChatModel:
+    """Arctic-Text2SQL-R1-7B served locally via Ollama — used by every
+    RetrievalAgent to write its own scoped SQL on the fly (see
+    retrieval_agents/schema_scope.py), instead of Gemini: no rate limit/quota,
+    no dependency on Gemini's availability, and trained specifically for
+    text-to-SQL rather than incidentally capable of it."""
+    cfg = load_config()
+    provider = OpenAIProvider(base_url=OLLAMA_BASE_URL, api_key="ollama")
+    return OpenAIChatModel(cfg.retrieval_sql_model.name, provider=provider)
 
 
 # Gemini's free tier caps at 15 requests/minute; a single benchmark question

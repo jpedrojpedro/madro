@@ -1,17 +1,10 @@
-from psycopg import sql
-from pydantic import BaseModel, Field
-from datetime import datetime
+from madro.config import get_retrieval_sql_model
 from madro.retrieval_agents.base import RetrievalAgent
 from madro.retrieval_agents.identity import EntityRef
+from madro.retrieval_agents.schema_scope import build_scoped_schema
+from madro.sql_generation import NaiveSQLBaseline, plain_runner
 
-
-class ImageFetcherResult(BaseModel):
-    publication_id: int = Field(description="The unique identifier of the publication.")
-    position: int = Field(description="The structural sequence position.")
-    extension: str = Field(description="The file type extension – jpg.")
-    data: str = Field(description="The extracted raw file in b64 format.")
-    published_at: datetime = Field(description="The publication timestamp.")
-    rnk: float = Field(description="Postgres ts_rank full-text search score – between 0 and 1.")
+SCOPED_TABLES = ["raw_file", "publication", "profile"]
 
 
 class ImageFetcherAgent(RetrievalAgent):
@@ -23,73 +16,42 @@ class ImageFetcherAgent(RetrievalAgent):
         date_to = kwargs.get("date_to")
         username = kwargs.get("username")
 
-        # mentioned_profile resolves an explicit @username mention (if any) to
-        # its profile id, so that profile's images are folded into the
-        # lexical results and bumped to the top instead of relying solely on
-        # the caption text matching the demand.
-        #
-        # description_lexemes is built with the custom `pt_en` text search
-        # configuration (handles both English and Portuguese search terms
-        # against this mostly-Portuguese content) — query with the same
-        # configuration, never 'english'/'portuguese' alone, or matches are
-        # silently missed.
-        params = [username, demand, ['jpg']]
-        date_clauses = []
+        prompt = self._with_username_hint(demand, username)
         if date_from:
-            date_clauses.append(sql.SQL("AND p.published_at >= %s"))
-            params.append(date_from)
+            prompt += f"\n\nOnly include images from publications published on or after {date_from}."
         if date_to:
-            date_clauses.append(sql.SQL("AND p.published_at <= %s"))
-            params.append(date_to)
-        params.append(sample)
-
-        query = sql.SQL("""
-        WITH mentioned_profile AS (
-            SELECT id FROM public.profile WHERE username = %s
-        ), search_setup AS (
-            SELECT to_tsquery(
-                'pt_en',
-                array_to_string(
-                    tsvector_to_array(
-                        to_tsvector('pt_en', %s)
-                    ),
-                    ' | '
-                )
-          ) AS query
+            prompt += f"\n\nOnly include images from publications published on or before {date_to}."
+        # The scoped schema's raw_file.data note ("never useful for a text
+        # answer; don't select this") is correct for a text-answering agent —
+        # wrong here, since this agent's whole job is fetching that data for
+        # EnrichmentAgent's downstream OCR/captioning pass.
+        prompt += (
+            "\n\nUnlike a text-answering query, DO select raw_file.data (the "
+            "image bytes) and raw_file.extension — filtered to extension = "
+            "'jpg' only — since this feeds an image captioning/OCR pipeline, "
+            "not a text answer."
         )
-        SELECT rf.publication_id,
-               rf.position,
-               rf.extension,
-               rf.data,
-               p.published_at,
-               ts_rank(p.description_lexemes, query, 32) as rnk
-        FROM public.raw_file rf
-        CROSS JOIN search_setup ss
-        JOIN public.publication p ON rf.publication_id = p.id
-        WHERE rf.data IS NOT NULL
-          AND rf.extension = ANY(%s::file_extension[])
-          AND (p.description_lexemes @@ ss.query OR p.profile_id = (SELECT id FROM mentioned_profile))
-          {date_filter}
-        ORDER BY (p.profile_id = (SELECT id FROM mentioned_profile)) DESC, rnk DESC, p.published_at DESC, rf.position ASC
-        LIMIT %s
-        """).format(date_filter=sql.SQL(" ").join(date_clauses))
-        async with await self.connect() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(query, params)
-                rows = await cur.fetchall()
 
-        return [
-            ImageFetcherResult(
-                publication_id=row["publication_id"],
-                position=row["position"],
-                extension=row["extension"],
-                data=(
-                    bytes(row["data"]).decode()
-                    if isinstance(row.get("data"), (bytes, memoryview))
-                    else row["data"]
-                ),
-                published_at=row["published_at"],
-                rnk=row["rnk"],
-            ).model_dump(mode="json")
-            for row in rows
-        ]
+        resolver = NaiveSQLBaseline(
+            model=get_retrieval_sql_model(),
+            runner=plain_runner,
+            use_native_output=True,
+            schema_doc=build_scoped_schema(SCOPED_TABLES),
+            result_limit=sample,
+        )
+        outcome = await resolver.resolve(prompt, identity_hint=self.identity.field)
+        return [self._decode_bytes_values(row) for row in (outcome.rows or [])]
+
+    @staticmethod
+    def _decode_bytes_values(row: dict) -> dict:
+        """raw_file.data comes back from psycopg as bytes/memoryview holding
+        base64 ASCII text (dowser stores images pre-base64-encoded) —
+        RetrievalOut's base64 detection only recognizes str values, so it
+        must be decoded before this row is returned. Checked by value, not a
+        fixed column name — the on-the-fly query is free to alias this
+        column however it likes (observed aliasing it as `image_bytes`, not
+        `data`, in practice)."""
+        return {
+            key: (bytes(val).decode() if isinstance(val, (bytes, memoryview)) else val)
+            for key, val in row.items()
+        }

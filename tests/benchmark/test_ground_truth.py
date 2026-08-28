@@ -21,7 +21,7 @@ import pytest
 from madro.config import get_model, run_agent
 from tests.benchmark.baselines.comparison import GROUND_TRUTH_SUITE_PREFIX
 from tests.benchmark.baselines.hint_schema import build_hint_schema
-from tests.benchmark.baselines.naive_sql_baseline import NaiveSQLBaseline
+from madro.sql_generation import NaiveSQLBaseline
 
 pytestmark = pytest.mark.ground_truth
 

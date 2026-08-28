@@ -119,7 +119,12 @@ class RetrievalOut(BaseModel):
 
         # 3. Handle Lists of Dictionaries
         if isinstance(data, list):
-            if not data or not isinstance(data[0], dict):
+            # An empty list is a legitimate "found nothing" outcome (a
+            # NaiveSQLBaseline-backed RetrievalAgent's query can validly
+            # execute and return zero rows) — not an error.
+            if not data:
+                return {"image_content": [], "text_content": []}
+            if not isinstance(data[0], dict):
                 raise ValueError("List input must contain dictionary items.")
 
             image_content = []

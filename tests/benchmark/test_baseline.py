@@ -23,7 +23,7 @@ import pytest
 from madro.config import get_llama_model, get_model, get_qwen_coder_model, run_agent
 from tests.benchmark.baselines.comparison import BASELINE_SUITE_PREFIX
 from tests.benchmark.baselines.ground_truth_reference import build_identity_hints
-from tests.benchmark.baselines.naive_sql_baseline import NaiveSQLBaseline
+from madro.sql_generation import NaiveSQLBaseline
 
 pytestmark = pytest.mark.baseline
 

@@ -71,7 +71,14 @@ class AgentRunner:
                 [
                     str(job_status.id),
                     artifact.canonical_text,
-                    json.dumps({**artifact.provenance, "records": artifact.raw_records}),
+                    # default=str: on-the-fly retrieval agents' rows come
+                    # straight from psycopg (datetime/Decimal/etc., not the
+                    # JSON-safe types a fixed Pydantic model used to guarantee
+                    # via model_dump(mode="json")) — stringify anything
+                    # json.dumps can't handle natively, same convention
+                    # test_benchmark.py/test_ground_truth.py already use for
+                    # this exact same row shape.
+                    json.dumps({**artifact.provenance, "records": artifact.raw_records}, default=str),
                     artifact.lexical_index.normalization,
                 ],
             )

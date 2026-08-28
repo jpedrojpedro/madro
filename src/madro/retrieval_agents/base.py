@@ -2,29 +2,33 @@ import importlib
 from abc import ABC, abstractmethod
 
 import httpx
-from psycopg import AsyncConnection
-from psycopg.rows import dict_row
-from django.conf import settings
 
 from madro.retrieval_agents.identity import EntityRef
 
 
 class RetrievalAgent(ABC):
-    """Base class for local retrieval agents that query a remote Postgres DB."""
+    """Base class for local retrieval agents that query a remote Postgres DB
+    (on the fly, via madro.sql_generation.NaiveSQLBaseline — see each
+    concrete agent's run())."""
 
     # Declares which field in this agent's output records identifies its entities,
     # so EntityResolver can join records across agents without guessing from
     # field names. See identity.py.
     identity: EntityRef | None = None
 
-    async def connect(self) -> AsyncConnection:
-        return await AsyncConnection.connect(
-            settings.RETRIEVAL_DB_URL, row_factory=dict_row
-        )
-
     @abstractmethod
     async def run(self, job_id: str, demand: str, **kwargs) -> str | list | dict:
         """Execute the retrieval and return the raw result string."""
+
+    @staticmethod
+    def _with_username_hint(prompt: str, username: str | None) -> str:
+        """Folds an explicit @username mention (extracted upstream by
+        AgentRunner) into the natural-language prompt handed to the on-the-fly
+        SQL generator, instead of a hardcoded mentioned_profile CTE — the LLM
+        decides how best to use it (a WHERE filter, a ranking boost, ...)."""
+        if not username:
+            return prompt
+        return f"{prompt}\n\nIf relevant, prioritize the profile with username '{username}'."
 
     @classmethod
     def local_class_from_uri(cls, uri: str) -> type["RetrievalAgent"]:
