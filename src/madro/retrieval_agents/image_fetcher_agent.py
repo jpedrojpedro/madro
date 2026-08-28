@@ -1,8 +1,5 @@
-from madro.config import get_retrieval_sql_model
 from madro.retrieval_agents.base import RetrievalAgent
 from madro.retrieval_agents.identity import EntityRef
-from madro.retrieval_agents.schema_scope import build_scoped_schema
-from madro.sql_generation import NaiveSQLBaseline, plain_runner
 
 SCOPED_TABLES = ["raw_file", "publication", "profile"]
 
@@ -32,15 +29,8 @@ class ImageFetcherAgent(RetrievalAgent):
             "not a text answer."
         )
 
-        resolver = NaiveSQLBaseline(
-            model=get_retrieval_sql_model(),
-            runner=plain_runner,
-            use_native_output=True,
-            schema_doc=build_scoped_schema(SCOPED_TABLES),
-            result_limit=sample,
-        )
-        outcome = await resolver.resolve(prompt, identity_hint=self.identity.field)
-        return [self._decode_bytes_values(row) for row in (outcome.rows or [])]
+        rows = await self._generate_and_execute(prompt, SCOPED_TABLES, sample)
+        return [self._decode_bytes_values(row) for row in rows]
 
     @staticmethod
     def _decode_bytes_values(row: dict) -> dict:

@@ -129,6 +129,7 @@ class AgentRunner:
             "source": agent.uri,
             "agent": agent.name,
             "identity": agent.identity,
+            **(retrieval_agent.last_provenance_extra or {}),
         }
 
         if agent.modality == "image" and retrieval_out.image_content:

@@ -1,8 +1,5 @@
-from madro.config import get_retrieval_sql_model
 from madro.retrieval_agents.base import RetrievalAgent
 from madro.retrieval_agents.identity import EntityRef
-from madro.retrieval_agents.schema_scope import build_scoped_schema
-from madro.sql_generation import NaiveSQLBaseline, plain_runner
 
 SCOPED_TABLES = ["profile", "profile_relationship"]
 
@@ -24,13 +21,4 @@ class FollowerAnalysisFetcherAgent(RetrievalAgent):
             f"profile_relationship, edge='follows') by at least one other "
             f"profile with more than {min_followers} followers."
         )
-
-        resolver = NaiveSQLBaseline(
-            model=get_retrieval_sql_model(),
-            runner=plain_runner,
-            use_native_output=True,
-            schema_doc=build_scoped_schema(SCOPED_TABLES),
-            result_limit=sample,
-        )
-        outcome = await resolver.resolve(prompt, identity_hint=self.identity.field)
-        return outcome.rows or []
+        return await self._generate_and_execute(prompt, SCOPED_TABLES, sample)

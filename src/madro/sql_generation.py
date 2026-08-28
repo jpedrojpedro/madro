@@ -27,6 +27,7 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, NativeOutput
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.models import Model
+from pydantic_ai.usage import RunUsage
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 from django.conf import settings
@@ -155,6 +156,9 @@ class NaiveSQLOutcome:
     error: str | None
     attempts: int
     history: list[FailedAttempt] = field(default_factory=list)
+    usage: RunUsage = field(default_factory=RunUsage)
+    """Summed across every attempt in this resolve() call, not just the
+    final one — a retried SQL generation costs tokens on every attempt."""
 
 
 class NaiveSQLBaseline:
@@ -195,9 +199,11 @@ class NaiveSQLBaseline:
         history: list[FailedAttempt] = []
         base_prompt = self._build_prompt(prompt, identity_hint)
         current_prompt = base_prompt
+        total_usage = RunUsage()
 
         for attempt in range(1, self.MAX_ATTEMPTS + 1):
             result = await self._runner(self._agent, current_prompt)
+            total_usage += result.usage()
             sql_text = result.output.sql.strip()
 
             error = self._guard(sql_text)
@@ -211,7 +217,7 @@ class NaiveSQLBaseline:
             if error is None and rows:
                 return NaiveSQLOutcome(
                     sql=sql_text, rows=rows[: self.result_limit], error=None,
-                    attempts=attempt, history=history,
+                    attempts=attempt, history=history, usage=total_usage,
                 )
 
             if error is None:
@@ -219,11 +225,17 @@ class NaiveSQLBaseline:
                 # one nudge to rule out an overly strict filter before we
                 # accept it, unless this was the last attempt available.
                 if attempt == self.MAX_ATTEMPTS:
-                    return NaiveSQLOutcome(sql=sql_text, rows=[], error=None, attempts=attempt, history=history)
+                    return NaiveSQLOutcome(
+                        sql=sql_text, rows=[], error=None,
+                        attempts=attempt, history=history, usage=total_usage,
+                    )
                 error = EMPTY_RESULT_MESSAGE
 
             if attempt == self.MAX_ATTEMPTS:
-                return NaiveSQLOutcome(sql=sql_text, rows=None, error=error, attempts=attempt, history=history)
+                return NaiveSQLOutcome(
+                    sql=sql_text, rows=None, error=error,
+                    attempts=attempt, history=history, usage=total_usage,
+                )
 
             history.append(FailedAttempt(sql=sql_text, error=error))
             current_prompt = RETRY_PROMPT_TEMPLATE.format(prompt=base_prompt, sql=sql_text, error=error)
