@@ -29,13 +29,18 @@ Outputs two files:
     model selected via --baseline-model (default: gemini — test_baseline.py
     runs the naive SQL baseline against both gemini and qwen2.5-coder, tagged
     via each result's "baseline_model" Allure parameter).
-  --grid-out (comparison_grid.xlsx): a wide grid, one column-block per
-    question (one "ground-truth" column + one per baseline model found +
-    one per MADRO approach found in allure-results, most recent run of
-    each), rows = ranked identity at positions 1..10. Identity values
-    repeated within a question's block are fill-colored so overlaps are
-    visible at a glance. Independent of --approach/--baseline-model — it
-    always includes every approach and every baseline model found.
+  --grid-out (comparison_grid.xlsx): one row-block of GRID_ROWS rows per
+    question (question_id + question text, in questions.json order), with a
+    blank separator row between blocks. Columns: question_id, question,
+    ground-truth, the --baseline-model baseline, and one column per distinct
+    alpha/beta MADRO weighting found in allure-results. When multiple
+    approaches (different sample sizes) share an alpha/beta pair, only the
+    one with the most recent run is kept — older sample sizes at the same
+    weighting are superseded, not meant to coexist in the comparison.
+    Identity values repeated within a question's block are fill-colored so
+    overlaps are visible at a glance. Independent of --approach — always
+    includes every alpha/beta weighting found — but scoped to the one
+    --baseline-model.
 """
 
 import argparse
@@ -47,7 +52,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
 from tabulate import tabulate
 
 from tests.benchmark.baselines.comparison import (
@@ -62,6 +68,8 @@ from tests.benchmark.baselines.comparison import (
 # ever used Gemini, so a missing parameter defaults to it rather than an
 # "unknown" bucket.
 DEFAULT_BASELINE_MODEL = "gemini"
+
+QUESTIONS_PATH = Path(__file__).resolve().parent.parent / "tests" / "benchmark" / "questions.json"
 
 GRID_ROWS = 10
 GRID_PALETTE = [
@@ -168,27 +176,57 @@ def _question_sort_key(question_id: str) -> int:
     return int(match.group(1)) if match else 10_000
 
 
-def build_comparison_grid(
-    allure_dir: Path, all_results: list[dict], baseline_entries: list[dict], ground_truth_entries: list[dict]
-) -> Workbook:
-    """One column-block per question: "ground-truth" + every baseline model
-    found + every MADRO approach found in allure-results (most recent run of
-    each), sorted by alpha descending. Rows are rank positions 1..GRID_ROWS.
-    Identity values repeated within a question's block (across ground truth,
-    baselines, and/or approaches) get a shared fill color, so overlaps are
-    visible at a glance."""
+def _latest_approach_per_alpha_beta(all_results: list[dict]) -> list[tuple[float, float, str]]:
+    """Different sample sizes run at the same alpha/beta weighting are
+    successive iterations of the same experiment, not variants meant to
+    coexist — e.g. sample-10/-15/-25_alpha-0.7_beta-0.3 all landed here over
+    time, but only the one with the most recent run is still valid. Keep one
+    approach per (alpha, beta) pair: whichever has the latest run_at."""
     approaches_raw: dict[str, list[dict]] = {}
     for r in all_results:
         approach = r["_parameters"].get("approach")
         if approach:
             approaches_raw.setdefault(approach, []).append(r)
 
-    approach_labels = []
-    for approach in approaches_raw:
+    best_by_pair: dict[tuple[float, float], tuple[str, str]] = {}
+    for approach, entries in approaches_raw.items():
         m = re.search(r"alpha-([\d.]+)_beta-([\d.]+)", approach)
-        if m:
-            approach_labels.append((float(m.group(1)), float(m.group(2)), approach))
-    approach_labels.sort(key=lambda t: -t[0])
+        if not m:
+            continue
+        _, run_at = _select_run(entries, None)
+        key = (float(m.group(1)), float(m.group(2)))
+        if key not in best_by_pair or (run_at or "") > best_by_pair[key][1]:
+            best_by_pair[key] = (approach, run_at or "")
+
+    return sorted(
+        ((alpha, beta, approach) for (alpha, beta), (approach, _) in best_by_pair.items()),
+        key=lambda t: -t[0],
+    )
+
+
+def build_comparison_grid(
+    allure_dir: Path,
+    all_results: list[dict],
+    baseline_entries: list[dict],
+    ground_truth_entries: list[dict],
+    questions: list[dict],
+) -> Workbook:
+    """One row-block of GRID_ROWS rows per question, in questions.json order,
+    with a blank separator row between blocks. Columns: question_id,
+    question, "ground-truth", the given baseline model(s), and one column
+    per distinct alpha/beta MADRO weighting found in allure-results (see
+    _latest_approach_per_alpha_beta — superseded sample sizes at the same
+    weighting are dropped), sorted by alpha descending. Identity values
+    repeated within a question's block (across ground truth, baselines,
+    and/or approaches) get a shared fill color, so overlaps are visible at a
+    glance."""
+    approaches_raw: dict[str, list[dict]] = {}
+    for r in all_results:
+        approach = r["_parameters"].get("approach")
+        if approach:
+            approaches_raw.setdefault(approach, []).append(r)
+
+    approach_labels = _latest_approach_per_alpha_beta(all_results)
 
     ground_truth_selected, _ = _select_run(ground_truth_entries, None)
     ground_truth_ids = _identity_lists_from_rows_attachment(allure_dir, ground_truth_selected, "Ground Truth result")
@@ -200,54 +238,78 @@ def build_comparison_grid(
         entries, _ = _select_run(approaches_raw[approach], None)
         approach_ids[approach] = _madro_identity_lists(allure_dir, entries)
 
+    question_text_by_id = {q["id"]: q.get("prompt", "") for q in questions}
+
     question_ids = set(ground_truth_ids)
     for ids_by_question in baseline_ids_by_model.values():
         question_ids |= set(ids_by_question)
     for ids_by_question in approach_ids.values():
         question_ids |= set(ids_by_question)
-    question_ids = sorted(question_ids, key=_question_sort_key)
+    ordered_ids = [q["id"] for q in questions if q["id"] in question_ids]
+    ordered_ids += sorted(question_ids - set(ordered_ids), key=_question_sort_key)
+
+    columns_meta = [("ground-truth", ground_truth_ids)]
+    columns_meta += [(f"baseline-{model_key}", baseline_ids_by_model[model_key]) for model_key in baseline_model_keys]
+    columns_meta += [
+        (f"alpha-{alpha}_beta-{beta}", approach_ids[approach]) for alpha, beta, approach in approach_labels
+    ]
 
     wb = Workbook()
     ws = wb.active
     ws.title = "Comparison Grid"
 
-    col = 1
-    for question_id in question_ids:
-        columns = [("ground-truth", ground_truth_ids.get(question_id, []))]
-        columns += [
-            (f"baseline-{model_key}", baseline_ids_by_model[model_key].get(question_id, []))
-            for model_key in baseline_model_keys
-        ]
-        for alpha, beta, approach in approach_labels:
-            columns.append((f"alpha-{alpha}_beta-{beta}", approach_ids[approach].get(question_id, [])))
+    header_font = Font(bold=True)
+    ws.cell(row=1, column=1, value="question_id").font = header_font
+    ws.column_dimensions["A"].width = 12
+    ws.cell(row=1, column=2, value="question").font = header_font
+    ws.column_dimensions["B"].width = 45
+    identity_col_start = 3
+    for i, (name, _) in enumerate(columns_meta):
+        col = identity_col_start + i
+        ws.cell(row=1, column=col, value=name).font = header_font
+        ws.column_dimensions[get_column_letter(col)].width = 26
 
-        start_col = col
-        for name, ids in columns:
-            header_cell = ws.cell(row=1, column=col, value=f"{question_id}-{name}")
-            header_cell.font = Font(bold=True)
-            for i, value in enumerate(ids):
-                ws.cell(row=2 + i, column=col, value=value)
-            ws.column_dimensions[header_cell.column_letter].width = 26
-            col += 1
-        end_col = col - 1
+    wrap_top = Alignment(wrap_text=True, vertical="top")
+
+    row = 2
+    for question_id in ordered_ids:
+        block_start = row
+        block_end = row + GRID_ROWS - 1
+
+        ws.cell(row=block_start, column=1, value=question_id)
+        ws.merge_cells(start_row=block_start, start_column=1, end_row=block_end, end_column=1)
+        ws.cell(row=block_start, column=1).alignment = wrap_top
+
+        ws.cell(row=block_start, column=2, value=question_text_by_id.get(question_id, ""))
+        ws.merge_cells(start_row=block_start, start_column=2, end_row=block_end, end_column=2)
+        ws.cell(row=block_start, column=2).alignment = wrap_top
+
+        block_values: dict[tuple[int, int], str] = {}
+        for i, (_, ids_by_question) in enumerate(columns_meta):
+            col = identity_col_start + i
+            ids = ids_by_question.get(question_id, [])
+            for r_offset in range(GRID_ROWS):
+                value = ids[r_offset] if r_offset < len(ids) else ""
+                r = block_start + r_offset
+                ws.cell(row=r, column=col, value=value).alignment = wrap_top
+                if value:
+                    block_values[(r, col)] = value
 
         counts: dict[str, int] = {}
-        for _, ids in columns:
-            for value in ids:
-                counts[value] = counts.get(value, 0) + 1
+        for value in block_values.values():
+            counts[value] = counts.get(value, 0) + 1
         color_by_value = {
             value: GRID_PALETTE[i % len(GRID_PALETTE)]
             for i, value in enumerate(v for v, c in sorted(counts.items()) if c >= 2)
         }
+        for (r, c), value in block_values.items():
+            if value in color_by_value:
+                color = color_by_value[value]
+                ws.cell(row=r, column=c).fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
 
-        for c in range(start_col, end_col + 1):
-            for r in range(2, 2 + GRID_ROWS):
-                cell = ws.cell(row=r, column=c)
-                if cell.value in color_by_value:
-                    color = color_by_value[cell.value]
-                    cell.fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
+        row = block_end + 2  # blank separator row between question blocks
 
-    ws.freeze_panes = "B2"
+    ws.freeze_panes = "C2"
     return wb
 
 
@@ -427,7 +489,8 @@ def main() -> None:
     args.out.write_text(json.dumps(output, ensure_ascii=False, indent=2))
     print(f"\nWrote {args.out}")
 
-    grid = build_comparison_grid(args.allure_dir, all_results, all_baseline_entries, ground_truth_all)
+    questions = json.loads(QUESTIONS_PATH.read_text())
+    grid = build_comparison_grid(args.allure_dir, all_results, baseline_candidates, ground_truth_all, questions)
     grid.save(args.grid_out)
     print(f"Wrote {args.grid_out}")
 

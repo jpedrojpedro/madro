@@ -61,6 +61,24 @@ class MultimodalNormalizer:
         long_fields = {k: v for k, v in item.items() if cls._is_long_value(v)}
         return scalar_fields, long_fields
 
+    @classmethod
+    def record_to_text(cls, record) -> str:
+        """Renders one record as prose — scalar fields inline, long free-text
+        fields (e.g. img_caption, ocr_text) as their own blocks. Shared by
+        synthesize_markdown's per-record document and RelevanceRanker's
+        per-entity ranking embedding, so the two representations never drift
+        apart — see docs/adr/0004-per-entity-live-embedding-for-s-sem.md."""
+        if not isinstance(record, dict):
+            return str(record)
+        lines = []
+        scalar_fields, long_fields = cls._split_fields(record)
+        if scalar_fields:
+            lines.append(" · ".join(f"**{k}**: {v}" for k, v in scalar_fields.items()))
+        for k, v in long_fields.items():
+            lines.append(f"**{k}**")
+            lines.append(v)
+        return "\n".join(lines)
+
     def synthesize_markdown(self, records: RetrievalOut) -> str:
         """
         Renders text_content as a single Markdown representation: a compact
@@ -87,17 +105,9 @@ class MultimodalNormalizer:
 
         for i, item in enumerate(records.text_content, start=1):
             markdown_lines.append(f"### #{i}")
-            if isinstance(item, dict):
-                scalar_fields, long_fields = self._split_fields(item)
-                if scalar_fields:
-                    markdown_lines.append(
-                        " · ".join(f"**{k}**: {v}" for k, v in scalar_fields.items())
-                    )
-                for k, v in long_fields.items():
-                    markdown_lines.append(f"**{k}**")
-                    markdown_lines.append(v)
-            else:
-                markdown_lines.append(str(item))
+            text = self.record_to_text(item)
+            if text:
+                markdown_lines.append(text)
             markdown_lines.append("")
 
         return "\n".join(markdown_lines).strip()

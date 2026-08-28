@@ -7,6 +7,14 @@ image-derived — are embedded into the same text vector space by
 MultimodalNormalizer (OCR text / img_caption for images, raw text
 otherwise), so entities are scored uniformly regardless of source modality.
 
+S_sem is computed per entity, live, against each entity's own resolved
+record (MultimodalNormalizer.record_to_text) rather than read from
+broker.job_artifact_document — those chunk embeddings are batch-level (one
+retrieval agent call's whole result set synthesized into one document), so
+every candidate in a batch inherited an identical S_sem, erasing semantic
+differentiation between them. See
+docs/adr/0004-per-entity-live-embedding-for-s-sem.md.
+
 S_lex (ts_rank, typically ~0.01-0.03 here) and S_sem (cosine similarity,
 typically ~0.5-0.65) live on very different numeric scales, so a raw
 alpha*S_lex + beta*S_sem would let S_sem's magnitude dominate s_relevance
@@ -17,11 +25,22 @@ not the channel's raw value, so they stay meaningful regardless of either
 channel's absolute scale.
 """
 
+import math
+
 from madro.config import load_config
 from madro.db import async_cursor
 from madro.workflows.normalizer import MultimodalNormalizer
 from madro.aggregation.entities import RankedEntity
 from madro.aggregation.entity_resolver import EntityResolver
+
+
+def _cosine(a: list[float], b: list[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = math.sqrt(sum(x * x for x in a))
+    norm_b = math.sqrt(sum(x * x for x in b))
+    if norm_a == 0.0 or norm_b == 0.0:
+        return 0.0
+    return dot / (norm_a * norm_b)
 
 
 class RelevanceRanker:
@@ -51,7 +70,6 @@ class RelevanceRanker:
     async def rank(self, thread_id: str, demand: str) -> list[RankedEntity]:
         """Compute relevance scores for all candidate entities in a thread."""
         query_embedding = self._embed_query(demand)
-        vector_literal = "[" + ",".join(map(str, query_embedding)) + "]"
 
         async with async_cursor() as cur:
             # Per-artifact identity + raw records, for entity resolution. s_lex
@@ -85,22 +103,6 @@ class RelevanceRanker:
             )
             artifact_rows = await cur.fetchall()
 
-            # Semantic scores per chunk
-            await cur.execute(
-                """
-                SELECT jad.job_artifact_id,
-                       1 - (jad.embedding <=> %s::vector) AS sem_score
-                FROM broker.job_artifact_document jad
-                JOIN broker.job_artifact ja ON ja.job_status_id = jad.job_artifact_id
-                JOIN broker.job_status js ON js.id = ja.job_status_id
-                JOIN broker.job_execution je ON je.job_id = js.job_id AND je.agent_id = js.agent_id
-                JOIN agents_topics.agent a ON a.id = je.agent_id
-                WHERE je.thread_id = %s
-                """,
-                [vector_literal, thread_id],
-            )
-            sem_rows = await cur.fetchall()
-
         # Group identity + records by artifact
         records_by_artifact: dict[str, tuple[dict | None, list[dict]]] = {}
         for row in artifact_rows:
@@ -110,27 +112,32 @@ class RelevanceRanker:
             identity = pd.get("identity")
             records_by_artifact[str(artifact_id)] = (identity, records)
 
-        # Group semantic scores by artifact — best chunk score per artifact
-        sem_by_artifact: dict[str, float] = {}
-        for row in sem_rows:
-            artifact_id, sem_score = row
-            key = str(artifact_id)
-            sem_by_artifact[key] = max(sem_by_artifact.get(key, 0.0), float(sem_score))
-
         # Try to resolve entities by joining on common keys across artifacts
         entities = self._entity_resolver.resolve(records_by_artifact)
+
+        if not entities:
+            return []
+
+        # S_sem per entity, live — see module docstring and ADR-0004 for why
+        # this isn't read from broker.job_artifact_document.
+        entity_items = list(entities.items())
+        entity_texts = [
+            self._normalizer.record_to_text(entity_data)
+            for _, (_, entity_data) in entity_items
+        ]
+        entity_embeddings = await self._normalizer._embed(entity_texts)
 
         # Raw scores first (kept on RankedEntity for observability/debugging —
         # they're what actually surfaced the scale-mismatch problem this RRF
         # step fixes). s_relevance is computed from each entity's RANK within
         # a channel, not these raw values — see module docstring.
         raw: list[tuple[str, dict, float, float]] = []
-        for entity_id, (artifact_ids, entity_data) in entities.items():
+        for (entity_id, (_, entity_data)), embedding in zip(entity_items, entity_embeddings):
             # Records with no `rnk` at all (e.g. SemanticOpinionFetcherAgent's
             # comments have no lexical query of their own) default to 0.0 —
             # they're only findable via the semantic channel today.
             s_lex = float(entity_data.get("rnk") or 0.0)
-            s_sem = max(sem_by_artifact.get(aid, 0.0) for aid in artifact_ids)
+            s_sem = _cosine(query_embedding, embedding)
             raw.append((entity_id, entity_data, s_lex, s_sem))
 
         lex_rank = {
