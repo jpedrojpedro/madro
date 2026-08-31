@@ -237,3 +237,6 @@ experiments.md
 
 # Dowser DB
 scripts/dowser_db_schema.sql
+
+# MacOS
+.DS_Store
