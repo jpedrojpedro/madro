@@ -124,7 +124,7 @@ class AgentRunner:
         retrieval_agent = RetrievalAgent.from_uri(agent.uri, timeout=self.timeout)
         raw = await retrieval_agent.run(**payload)
 
-        retrieval_out = RetrievalOut.model_validate(raw)
+        retrieval_out = RetrievalOut.model_validate(raw, context={"modality": agent.modality})
         retrieval_out.provenance = {
             "source": agent.uri,
             "agent": agent.name,

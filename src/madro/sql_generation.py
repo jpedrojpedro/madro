@@ -111,7 +111,7 @@ Rules:
   `to_tsquery` requires explicit `&`/`|` operators between multiple words
   (e.g. `to_tsquery('pt_en', 'italian | restaurant')`) — a plain
   space-separated phrase is a syntax error, not an implicit AND/OR.
-- End with LIMIT {limit}.
+{limit}
 - If the request cannot be answered from this schema (e.g. it depends on
   what is visually shown in an image), still write your best-effort query
   rather than refusing — an empty or irrelevant result is an acceptable
@@ -185,10 +185,11 @@ class NaiveSQLBaseline:
         # NativeOutput's response_format json_schema mode correctly, so
         # non-Gemini models should pass use_native_output=True.
         output_type = NativeOutput(SQLGenerationResult) if use_native_output else SQLGenerationResult
+        limit = f"- End with LIMIT {self.result_limit}." if self.result_limit != -1 else ""
         self._agent = Agent(
             model=model or get_model(),
             output_type=output_type,
-            system_prompt=SQL_GENERATION_SP.format(schema=schema_doc, limit=result_limit),
+            system_prompt=SQL_GENERATION_SP.format(schema=schema_doc, limit=limit),
         )
         # run_agent applies Gemini's free-tier rate-limit throttle/retry — not
         # applicable to a locally-served model, so callers using a non-Gemini

@@ -2,7 +2,7 @@ from uuid import UUID
 import base64
 from typing import Any
 from dataclasses import dataclass, field
-from pydantic import BaseModel, Field, model_validator, field_validator
+from pydantic import BaseModel, Field, ValidationInfo, model_validator, field_validator
 
 
 class AgentIn(BaseModel):
@@ -92,7 +92,19 @@ class RetrievalOut(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def normalize_incoming_response(cls, data: Any) -> Any:
+    def normalize_incoming_response(cls, data: Any, info: ValidationInfo) -> Any:
+        # Base64 content-sniffing is only meaningful for image-modality agents
+        # (e.g. ImageFetcherAgent, whose free-form generated SQL can alias the
+        # image-bytes column however it likes, so the field can't be located
+        # by name — see retrieval_agents/image_fetcher_agent.py). A
+        # text-modality agent's rows (e.g. ProfileFetcherAgent's username/
+        # full_name/biography) must never be routed into image_content just
+        # because a value happens to decode as base64 — gate on the agent's
+        # declared modality, passed via validation context, instead of
+        # inferring it from field content.
+        context = info.context or {}
+        is_image_agent = context.get("modality") == "image"
+
         # If it's already an instance or a pre-shaped dictionary matching the fields,
         # pass it through
         if isinstance(data, dict) and (
@@ -102,7 +114,7 @@ class RetrievalOut(BaseModel):
 
         # 1. Handle raw String inputs
         if isinstance(data, str):
-            if cls._is_base64(data):
+            if is_image_agent and cls._is_base64(data):
                 return {"image_content": [data]}
             return {"text_content": [{"content": data}]}
 
@@ -111,7 +123,7 @@ class RetrievalOut(BaseModel):
             image_content = []
             text_content = []
             for key, val in data.items():
-                if isinstance(val, str) and cls._is_base64(val):
+                if is_image_agent and isinstance(val, str) and cls._is_base64(val):
                     image_content.append(val)
                 else:
                     text_content.append({key: val})
@@ -132,7 +144,7 @@ class RetrievalOut(BaseModel):
             for dict_elem in data:
                 txt_payload = {}
                 for key, val in dict_elem.items():
-                    if isinstance(val, str) and cls._is_base64(val):
+                    if is_image_agent and isinstance(val, str) and cls._is_base64(val):
                         image_content.append(val)
                     else:
                         txt_payload[key] = val

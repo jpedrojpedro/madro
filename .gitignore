@@ -52,8 +52,7 @@ coverage.xml
 cover/
 
 # Allure Report
-allure-results/
-allure-results-history/
+allure-results*/
 allure-report/
 
 # General Report
