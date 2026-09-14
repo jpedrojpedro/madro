@@ -50,7 +50,11 @@ if _question_range:
 
 # Set by the `make benchmark SAMPLE=... FUSION_LEX=... FUSION_SEM=...` target —
 # mandatory, so this raises a clear KeyError if run outside that target.
-SAMPLE = int(os.environ["BENCHMARK_SAMPLE"])
+# SAMPLE=-1 is the human-facing spelling for "no limit" — converted to None
+# here, at the edge, so nothing downstream (agent_runner, RetrievalAgent,
+# NaiveSQLBaseline) has to know about the -1 convention.
+_raw_sample = os.environ["BENCHMARK_SAMPLE"]
+SAMPLE = None if _raw_sample == "-1" else int(_raw_sample)
 ALPHA = float(os.environ["BENCHMARK_ALPHA"])
 BETA = float(os.environ["BENCHMARK_BETA"])
 

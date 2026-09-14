@@ -8,7 +8,7 @@ class PublicationFetcherAgent(RetrievalAgent):
     identity = EntityRef(field="publication_id", kind="publication")
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
-        sample = kwargs.get("sample") or 25
+        sample = kwargs.get("sample", 25)
         username = kwargs.get("username")
 
         prompt = self._with_username_hint(demand, username)

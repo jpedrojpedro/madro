@@ -17,7 +17,7 @@ class SemanticOpinionFetcherAgent(RetrievalAgent):
     )
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
-        sample = kwargs.get("sample") or 25
+        sample = kwargs.get("sample", 25)
         date_from = kwargs.get("date_from")
         date_to = kwargs.get("date_to")
         username = kwargs.get("username")

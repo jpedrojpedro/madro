@@ -41,7 +41,7 @@ class RetrievalAgent(ABC):
             return prompt
         return f"{prompt}\n\nIf relevant, prioritize the profile with username '{username}'."
 
-    async def _generate_and_execute(self, prompt: str, tables: list[str], sample: int) -> list[dict]:
+    async def _generate_and_execute(self, prompt: str, tables: list[str], sample: int | None) -> list[dict]:
         """Writes and runs this agent's scoped SQL on the fly (schema scoped
         to `tables`, public.* only — see retrieval_agents/schema_scope.py),
         via the shared NaiveSQLBaseline engine. Shared by every concrete

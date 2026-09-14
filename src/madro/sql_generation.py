@@ -171,7 +171,7 @@ class NaiveSQLBaseline:
         runner: AgentRunner | None = None,
         use_native_output: bool = False,
         schema_doc: str | None = None,
-        result_limit: int = 10,
+        result_limit: int | None = 10,
     ):
         # Baseline queries the full public schema (default: dowser_schema.md).
         # Ground Truth passes its own hint-scoped schema slice, and
@@ -185,7 +185,7 @@ class NaiveSQLBaseline:
         # NativeOutput's response_format json_schema mode correctly, so
         # non-Gemini models should pass use_native_output=True.
         output_type = NativeOutput(SQLGenerationResult) if use_native_output else SQLGenerationResult
-        limit = f"- End with LIMIT {self.result_limit}." if self.result_limit != -1 else ""
+        limit = f"- End with LIMIT {self.result_limit}." if self.result_limit is not None else ""
         self._agent = Agent(
             model=model or get_model(),
             output_type=output_type,
@@ -217,7 +217,9 @@ class NaiveSQLBaseline:
 
             if error is None and rows:
                 return NaiveSQLOutcome(
-                    sql=sql_text, rows=rows[: self.result_limit], error=None,
+                    sql=sql_text,
+                    rows=rows if self.result_limit is None else rows[: self.result_limit],
+                    error=None,
                     attempts=attempt, history=history, usage=total_usage,
                 )
 

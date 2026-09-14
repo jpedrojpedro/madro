@@ -11,7 +11,7 @@ class FollowerAnalysisFetcherAgent(RetrievalAgent):
     identity = EntityRef(field="profile_id", kind="profile")
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
-        sample = kwargs.get("sample") or 25
+        sample = kwargs.get("sample", 25)
         min_followers = kwargs.get("min_followers") or 10000
         username = kwargs.get("username")
 
