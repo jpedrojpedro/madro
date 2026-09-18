@@ -26,11 +26,17 @@ llama_baseline_model:
   max_tokens: 4096
 
 # Served locally via Ollama — see get_retrieval_sql_model() in config.py.
-# Every RetrievalAgent's on-the-fly SQL generator (retrieval_agents/schema_scope.py).
+# Only used when retrieval_sql_backend (below) is "arctic".
 retrieval_sql_model:
   name: a-kore/Arctic-Text2SQL-R1-7B
   temperature: 0
   max_tokens: 4096
+
+# Which resolver class every RetrievalAgent uses for its on-the-fly SQL
+# generation — see retrieval_agents/sql_resolvers.py. "gemini" (annotated
+# Markdown schema, configs/dowser_schema.md) or "arctic" (pure DDL,
+# configs/dowser_schema.sql — matches Arctic's own training format).
+retrieval_sql_backend: gemini
 
 fusion:
   alpha: 0.3   # lexical weight

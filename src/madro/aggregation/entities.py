@@ -1,4 +1,12 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+
+@dataclass
+class ResolvedEntity:
+    """One entity EntityResolver joined records into — every artifact that
+    contributed a record to it, and the merged record data itself."""
+    artifact_ids: list[str] = field(default_factory=list)
+    data: dict = field(default_factory=dict)
 
 
 @dataclass

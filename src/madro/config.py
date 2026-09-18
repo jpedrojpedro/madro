@@ -39,6 +39,9 @@ class AppConfig(BaseModel):
     qwen_baseline_model: ModelConfig = ModelConfig(name="qwen2.5-coder:7b")
     llama_baseline_model: ModelConfig = ModelConfig(name="llama3.1:8b")
     retrieval_sql_model: ModelConfig = ModelConfig(name="a-kore/Arctic-Text2SQL-R1-7B")
+    # Which resolver class every RetrievalAgent uses for its on-the-fly SQL
+    # generation — "gemini" or "arctic" — see retrieval_agents/sql_resolvers.py.
+    retrieval_sql_backend: str = "gemini"
     fusion: FusionConfig = FusionConfig()
     debug: DebugConfig = DebugConfig()
 

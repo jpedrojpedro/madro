@@ -4,9 +4,12 @@ against Ground Truth's rows, which stands as the reference ("relevant") set
 for both — see docs/adr/0001-ground-truth-is-the-benchmark-reference.md.
 
 All three sides are plain, already rank-ordered `list[dict]` — either live
-in-process objects (`RankedEntity.entity_data`, `NaiveSQLOutcome.rows`) or
-records parsed back out of Allure JSON attachments — so `compare()` doesn't
-care where its inputs came from.
+in-process objects (`NaiveSQLOutcome.rows`) or records parsed back out of
+Allure JSON attachments — so `compare()` doesn't care where its inputs came
+from, EXCEPT: MADRO's side must be passed the full `{"entity_id":
+"kind:value", "entity_data": {...}}` records straight from the "Ranked
+entities" attachment (or `RankedEntity` instances' own shape), not just
+`entity_data` unwrapped — see `identity()` for why.
 """
 
 ID_FIELD_PRIORITY = ("profile_id", "publication_id", "comment_id", "follower_profile_id")
@@ -27,9 +30,31 @@ GROUND_TRUTH_SUITE_PREFIX = "GroundTruth_"
 
 
 def identity(record: dict) -> tuple[str, str] | None:
-    """First matching (field, value) pair from ID_FIELD_PRIORITY, or None if
-    the record carries none of them — mirrors the join-key convention every
-    retrieval agent and EntityResolver already use."""
+    """(field, value) identifying this record's entity, or None if it can't
+    be identified at all.
+
+    A MADRO "Ranked entities" record (`{"entity_id": "kind:value",
+    "entity_data": {...}}`) already carries the identity EntityResolver
+    actually resolved it under — trust that instead of guessing from
+    ID_FIELD_PRIORITY against `entity_data`. A record's raw data can
+    legitimately carry more than one ID field (e.g. a comment record also
+    carries its parent's publication_id, needed for EntityResolver's own join
+    key — see aggregation/entity_resolver.py), so scanning `entity_data` for
+    "whichever ID field is present first" would silently prefer the wrong
+    one whenever both are there. `entity_id` also distinguishes a real
+    identity ("comment:123") from EntityResolver's `artifact_id:idx` fallback
+    for a record with no identity at all (see EntityResolver._entity_id) —
+    that fallback has no real kind and must report None here too, not borrow
+    whatever ID field happens to still be sitting in entity_data.
+
+    A flat Ground Truth/Baseline SQL row has no such wrapper and is never
+    ambiguous the same way (each query selects exactly the one relevant id
+    column), so it still goes through the ID_FIELD_PRIORITY scan."""
+    if "entity_id" in record and "entity_data" in record:
+        kind, _, value = record["entity_id"].partition(":")
+        field_name = f"{kind}_id"
+        return (field_name, value) if field_name in ID_FIELD_PRIORITY else None
+
     for field_name in ID_FIELD_PRIORITY:
         value = record.get(field_name)
         if value is not None:

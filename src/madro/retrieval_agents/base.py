@@ -3,16 +3,15 @@ from abc import ABC, abstractmethod
 
 import httpx
 
-from madro.config import get_model, run_agent
 from madro.retrieval_agents.identity import EntityRef
-from madro.retrieval_agents.schema_scope import build_scoped_schema
-from madro.sql_generation import NaiveSQLBaseline
+from madro.retrieval_agents.sql_resolvers import get_retrieval_sql_resolver
 
 
 class RetrievalAgent(ABC):
     """Base class for local retrieval agents that query a remote Postgres DB
-    (on the fly, via madro.sql_generation.NaiveSQLBaseline — see
-    _generate_and_execute() and each concrete agent's run())."""
+    (on the fly, via a per-model resolver — see
+    retrieval_agents/sql_resolvers.py, _generate_and_execute(), and each
+    concrete agent's run())."""
 
     # Declares which field in this agent's output records identifies its entities,
     # so EntityResolver can join records across agents without guessing from
@@ -43,17 +42,14 @@ class RetrievalAgent(ABC):
 
     async def _generate_and_execute(self, prompt: str, tables: list[str], sample: int | None) -> list[dict]:
         """Writes and runs this agent's scoped SQL on the fly (schema scoped
-        to `tables`, public.* only — see retrieval_agents/schema_scope.py),
-        via the shared NaiveSQLBaseline engine. Shared by every concrete
-        local RetrievalAgent so the SQL-generation setup (model, schema
-        scoping, identity aliasing, provenance capture) can't drift between
-        them the way the old fixed SQL templates once did."""
-        resolver = NaiveSQLBaseline(
-            model=get_model(),
-            runner=run_agent,
-            schema_doc=build_scoped_schema(tables),
-            result_limit=sample,
-        )
+        to `tables`, public.* only — see retrieval_agents/schema_scope.py and
+        schema_scope_ddl.py), via the configured per-model resolver (see
+        sql_resolvers.py — AppConfig.retrieval_sql_backend picks Gemini or
+        Arctic). Shared by every concrete local RetrievalAgent so the
+        SQL-generation setup (model, schema scoping, identity aliasing,
+        provenance capture) can't drift between them the way the old fixed
+        SQL templates once did."""
+        resolver = get_retrieval_sql_resolver(tables, sample)
         identity_field = self.identity.field if self.identity else None
         outcome = await resolver.resolve(prompt, identity_hint=identity_field)
         self.last_provenance_extra = {

@@ -122,8 +122,8 @@ class RelevanceRanker:
         # this isn't read from broker.job_artifact_document.
         entity_items = list(entities.items())
         entity_texts = [
-            self._normalizer.record_to_text(entity_data)
-            for _, (_, entity_data) in entity_items
+            self._normalizer.record_to_text(entity.data)
+            for _, entity in entity_items
         ]
         entity_embeddings = await self._normalizer._embed(entity_texts)
 
@@ -132,7 +132,8 @@ class RelevanceRanker:
         # step fixes). s_relevance is computed from each entity's RANK within
         # a channel, not these raw values — see module docstring.
         raw: list[tuple[str, dict, float, float]] = []
-        for (entity_id, (_, entity_data)), embedding in zip(entity_items, entity_embeddings):
+        for (entity_id, entity), embedding in zip(entity_items, entity_embeddings):
+            entity_data = entity.data
             # Records with no `rnk` at all (e.g. SemanticOpinionFetcherAgent's
             # comments have no lexical query of their own) default to 0.0 —
             # they're only findable via the semantic channel today.

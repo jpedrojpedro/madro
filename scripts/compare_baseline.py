@@ -149,7 +149,7 @@ def _madro_identity_lists(allure_dir: Path, entries: list[dict]) -> dict[str, li
     for entry in entries:
         question_id = entry["_labels"].get("story")
         ranked = _read_json_attachment(allure_dir, entry, "Ranked entities") or []
-        ids = [_identity_str(e["entity_data"]) for e in ranked]
+        ids = [_identity_str(e) for e in ranked]
         by_id[question_id] = [i for i in ids if i][:GRID_ROWS]
     return by_id
 
@@ -452,7 +452,7 @@ def main() -> None:
         question_id = entry["_labels"].get("story")
         complexities[question_id] = entry["_labels"].get("feature", "")
         ranked = _read_json_attachment(args.allure_dir, entry, "Ranked entities") or []
-        madro_by_id[question_id] = [e["entity_data"] for e in ranked]
+        madro_by_id[question_id] = ranked
 
     baseline_by_id: dict[str, list[dict]] = {}
     baseline_errors: dict[str, str] = {}
