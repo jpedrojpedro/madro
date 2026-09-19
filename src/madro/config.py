@@ -57,7 +57,7 @@ def load_config(path: Path | None = None) -> AppConfig:
 def get_model() -> GoogleModel:
     cfg = load_config()
     provider = GoogleProvider(api_key=os.environ["GOOGLE_API_KEY"])
-    return GoogleModel(cfg.model.name, provider=provider)
+    return GoogleModel(cfg.model.name, provider=provider, settings={"temperature": cfg.model.temperature})
 
 
 OLLAMA_BASE_URL = "http://localhost:11434/v1"

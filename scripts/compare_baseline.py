@@ -69,6 +69,24 @@ from tests.benchmark.baselines.comparison import (
 # "unknown" bucket.
 DEFAULT_BASELINE_MODEL = "gemini"
 
+# Questions dropped entirely from precision/recall (both sides) and from the
+# printed per-question tables — verified directly against the GroundTruth_gemini
+# run (2026-08-28T21:25:17Z) that each returns 0 rows, so there is nothing for
+# either side to be scored against. Kept here (rather than silently scoring as
+# a false 0 — see _side_result, which treats an empty-but-present rows/ranked
+# list as a real "ok" comparison, not "missing") so the exclusion is visible
+# and its reason is on record. Q30 is deliberately NOT here: its Gemini
+# content-filter block happens during MADRO's Response Synthesis step, after
+# retrieval and ranking already completed — its ranked-entities comparison
+# against Ground Truth is a genuine (if poor) result, not a data artifact.
+EXCLUDED_QUESTIONS: dict[str, str] = {
+    "Q06": "Ground Truth query returns 0 rows (empty Golden Standard)",
+    "Q07": "Ground Truth query returns 0 rows (empty Golden Standard)",
+    "Q08": "Ground Truth query returns 0 rows (empty Golden Standard)",
+    "Q11": "Ground Truth query returns 0 rows (empty Golden Standard)",
+    "Q47": "Ground Truth query returns 0 rows (empty Golden Standard)",
+}
+
 QUESTIONS_PATH = Path(__file__).resolve().parent.parent / "tests" / "benchmark" / "questions.json"
 
 GRID_ROWS = 10
@@ -466,6 +484,13 @@ def main() -> None:
             baseline_by_id[question_id] = payload.get("rows") or []
 
     all_ids = set(ground_truth_by_id) | set(ground_truth_errors) | set(madro_by_id) | set(baseline_by_id) | set(baseline_errors)
+    excluded_present = sorted(all_ids & set(EXCLUDED_QUESTIONS), key=_question_sort_key)
+    if excluded_present:
+        print("\nExcluded from precision/recall:")
+        for question_id in excluded_present:
+            print(f"  {question_id}: {EXCLUDED_QUESTIONS[question_id]}")
+    all_ids -= set(EXCLUDED_QUESTIONS)
+
     per_question = {}
     for question_id in all_ids:
         per_question[question_id] = {
