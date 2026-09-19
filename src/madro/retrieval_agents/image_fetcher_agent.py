@@ -1,7 +1,8 @@
 from madro.retrieval_agents.base import RetrievalAgent
 from madro.retrieval_agents.identity import EntityRef
 
-SCOPED_TABLES = ["raw_file", "publication", "profile"]
+SCOPED_TABLES = ["raw_file", "publication", "profile", "publication_collab"]
+SCHEMA_DOC = "image_fetcher_schema.md"
 
 
 class ImageFetcherAgent(RetrievalAgent):
@@ -29,7 +30,7 @@ class ImageFetcherAgent(RetrievalAgent):
             "not a text answer."
         )
 
-        rows = await self._generate_and_execute(prompt, SCOPED_TABLES, sample)
+        rows = await self._generate_and_execute(prompt, SCOPED_TABLES, sample, schema_doc=SCHEMA_DOC)
         return [self._decode_bytes_values(row) for row in rows]
 
     @staticmethod

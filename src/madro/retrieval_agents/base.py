@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import httpx
 
 from madro.retrieval_agents.identity import EntityRef
+from madro.retrieval_agents.schema_docs import SCHEMA_DOCS
 from madro.retrieval_agents.sql_resolvers import get_retrieval_sql_resolver
 
 
@@ -40,7 +41,9 @@ class RetrievalAgent(ABC):
             return prompt
         return f"{prompt}\n\nIf relevant, prioritize the profile with username '{username}'."
 
-    async def _generate_and_execute(self, prompt: str, tables: list[str], sample: int | None) -> list[dict]:
+    async def _generate_and_execute(
+        self, prompt: str, tables: list[str], sample: int | None, schema_doc: str | None = None
+    ) -> list[dict]:
         """Writes and runs this agent's scoped SQL on the fly (schema scoped
         to `tables`, public.* only — see retrieval_agents/schema_scope.py and
         schema_scope_ddl.py), via the configured per-model resolver (see
@@ -48,8 +51,15 @@ class RetrievalAgent(ABC):
         Arctic). Shared by every concrete local RetrievalAgent so the
         SQL-generation setup (model, schema scoping, identity aliasing,
         provenance capture) can't drift between them the way the old fixed
-        SQL templates once did."""
-        resolver = get_retrieval_sql_resolver(tables, sample)
+        SQL templates once did.
+
+        `schema_doc`, when given, is a filename under retrieval_agents/schemas/
+        (see each agent's own SCHEMA_DOC constant) resolved here to its text via
+        schema_docs.SCHEMA_DOCS — GeminiSQLResolver's hand-authored scoped
+        schema doc; ArcticSQLResolver ignores it and keeps building DDL from
+        `tables`. See docs/adr/0007-static-per-agent-schema-docs-for-gemini-resolver.md."""
+        schema_doc_text = SCHEMA_DOCS[schema_doc] if schema_doc else None
+        resolver = get_retrieval_sql_resolver(tables, sample, schema_doc_text)
         identity_field = self.identity.field if self.identity else None
         outcome = await resolver.resolve(prompt, identity_hint=identity_field)
         self.last_provenance_extra = {

@@ -2,6 +2,7 @@ from madro.retrieval_agents.base import RetrievalAgent
 from madro.retrieval_agents.identity import EntityRef
 
 SCOPED_TABLES = ["publication", "profile", "publication_collab"]
+SCHEMA_DOC = "publication_schema.md"
 
 
 class PublicationFetcherAgent(RetrievalAgent):
@@ -12,4 +13,4 @@ class PublicationFetcherAgent(RetrievalAgent):
         username = kwargs.get("username")
 
         prompt = self._with_username_hint(demand, username)
-        return await self._generate_and_execute(prompt, SCOPED_TABLES, sample)
+        return await self._generate_and_execute(prompt, SCOPED_TABLES, sample, schema_doc=SCHEMA_DOC)

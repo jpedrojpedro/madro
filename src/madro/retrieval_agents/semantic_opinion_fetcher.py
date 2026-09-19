@@ -1,7 +1,8 @@
 from madro.retrieval_agents.base import RetrievalAgent
 from madro.retrieval_agents.identity import EntityRef
 
-SCOPED_TABLES = ["comment", "publication", "profile"]
+SCOPED_TABLES = ["comment", "publication", "profile", "publication_collab"]
+SCHEMA_DOC = "semantic_opinion_schema.md"
 
 
 class SemanticOpinionFetcherAgent(RetrievalAgent):
@@ -27,4 +28,4 @@ class SemanticOpinionFetcherAgent(RetrievalAgent):
             prompt += f"\n\nOnly include comments published on or after {date_from}."
         if date_to:
             prompt += f"\n\nOnly include comments published on or before {date_to}."
-        return await self._generate_and_execute(prompt, SCOPED_TABLES, sample)
+        return await self._generate_and_execute(prompt, SCOPED_TABLES, sample, schema_doc=SCHEMA_DOC)
