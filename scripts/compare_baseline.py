@@ -381,17 +381,34 @@ def _print_side_table(title: str, complexities: dict[str, str], per_question: di
 
 
 def _aggregate(per_question: dict, side: str) -> dict:
+    """P@k/R@k denominator is fixed at every question this side has a valid
+    Ground Truth to compare against ("ground_truth_error"/"missing_in_ground_truth"
+    excluded — there's no reference at all to score 0 or otherwise against).
+    Within that, a side that failed to answer ("error"/"missing") scores 0
+    rather than being skipped, so a less-reliable tool can't look more
+    accurate simply by attempting fewer, easier questions than the other side
+    — see /Users/joao.pinheiro/Workspace/.DSc/PhD_Thesis's
+    docs/adr/0005-score-unanswered-questions-as-zero.md. `valid_n` (how many
+    were actually answered) is still reported alongside the fixed `n`, so
+    reliability and ranking accuracy remain two separate, visible numbers."""
     values = {k: {"precision": [], "recall": []} for k in RANKS}
     identity_matches = []
+    valid_n = 0
     for entry in per_question.values():
         result = entry[side]
-        if result["status"] != "ok":
+        if result["status"] in ("ground_truth_error", "missing_in_ground_truth"):
             continue
-        for k in RANKS:
-            values[k]["precision"].append(result["metrics"][k]["precision"])
-            values[k]["recall"].append(result["metrics"][k]["recall"])
-        if result["identity_match"] is not None:
-            identity_matches.append(result["identity_match"])
+        if result["status"] == "ok":
+            valid_n += 1
+            for k in RANKS:
+                values[k]["precision"].append(result["metrics"][k]["precision"])
+                values[k]["recall"].append(result["metrics"][k]["recall"])
+            if result["identity_match"] is not None:
+                identity_matches.append(result["identity_match"])
+        else:
+            for k in RANKS:
+                values[k]["precision"].append(0.0)
+                values[k]["recall"].append(0.0)
 
     summary = {
         k: {
@@ -401,6 +418,7 @@ def _aggregate(per_question: dict, side: str) -> dict:
         }
         for k, v in values.items()
     }
+    summary["valid_n"] = valid_n
     summary["identity_match_rate"] = (
         sum(identity_matches) / len(identity_matches) if identity_matches else None
     )
@@ -509,10 +527,17 @@ def main() -> None:
         "baseline_vs_ground_truth": _aggregate(per_question, "baseline_vs_ground_truth"),
         "madro_vs_ground_truth": _aggregate(per_question, "madro_vs_ground_truth"),
     }
-    print("\nAggregate (mean over questions with a comparable Ground Truth result):")
+    print(
+        "\nAggregate (n is fixed per side at every question with a comparable Ground "
+        "Truth result; a side that failed to answer scores 0 rather than being "
+        "excluded — valid_n is how many it actually answered, see _aggregate docstring):"
+    )
     print(tabulate(
-        [[side, k, v["precision_mean"], v["recall_mean"], v["n"]] for side, summary in aggregate.items() for k, v in summary.items() if k in RANKS],
-        headers=["side", "k", "precision_mean", "recall_mean", "n"],
+        [
+            [side, k, v["precision_mean"], v["recall_mean"], v["n"], summary["valid_n"]]
+            for side, summary in aggregate.items() for k, v in summary.items() if k in RANKS
+        ],
+        headers=["side", "k", "precision_mean", "recall_mean", "n", "valid_n"],
     ))
     print(tabulate(
         [[side, summary["identity_match_rate"], summary["identity_match_n"]] for side, summary in aggregate.items()],
