@@ -130,7 +130,7 @@ async def _run_task(task_prompt: str) -> None:
     # ------------------------------------------------------------------
     _print_section("Step 4 · Relevance ranking")
 
-    ranked = await RelevanceRanker().rank(str(thread.id), task_prompt)
+    ranked = await RelevanceRanker().rank(str(thread.id))
 
     print(f"Entities ranked: {len(ranked)}\n")
     for i, entity in enumerate(ranked, 1):

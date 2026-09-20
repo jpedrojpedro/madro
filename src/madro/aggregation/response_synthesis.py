@@ -20,12 +20,22 @@ class ResponseSynthesisAgent:
 
     async def synthesize(self, thread_id: str, demand: str) -> str:
         """Run ranking and synthesize a natural-language response."""
-        ranked = await self._ranker.rank(thread_id, demand)
+        ranked = await self._ranker.rank(thread_id)
+
+        # Grouped by sub-demand rather than one flat list, so the model can
+        # explicitly connect entities across groups (e.g. a profile in one
+        # group to the items it follows in another) instead of reasoning over
+        # an undifferentiated pool — see
+        # docs/adr/0009-relevance-ranking-is-scoped-per-sub-demand.md. An
+        # entity resolved from more than one sub-demand's artifacts appears in
+        # each group it belongs to.
+        groups: dict[str, list] = {}
+        for e in ranked:
+            entry = {"entity_id": e.entity_id, "score": round(e.s_relevance, 4), **e.entity_data}
+            for sub_demand in e.sub_demands:
+                groups.setdefault(sub_demand, []).append(entry)
         evidence = json.dumps(
-            [
-                {"entity_id": e.entity_id, "score": round(e.s_relevance, 4), **e.entity_data}
-                for e in ranked
-            ],
+            [{"sub_demand": sub_demand, "entities": entries} for sub_demand, entries in groups.items()],
             ensure_ascii=False,
         )
 

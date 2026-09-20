@@ -194,7 +194,7 @@ async def _run_question(prompt: str, pipeline: Pipeline) -> None:
         )
 
     with allure.step("Relevance ranking"):
-        ranked = await pipeline.ranker.rank(str(thread.id), prompt)
+        ranked = await pipeline.ranker.rank(str(thread.id))
         allure.attach(
             json.dumps(
                 [
@@ -203,6 +203,7 @@ async def _run_question(prompt: str, pipeline: Pipeline) -> None:
                         "s_lex": e.s_lex,
                         "s_sem": e.s_sem,
                         "s_relevance": e.s_relevance,
+                        "sub_demands": e.sub_demands,
                         "entity_data": e.entity_data,
                     }
                     for e in ranked
