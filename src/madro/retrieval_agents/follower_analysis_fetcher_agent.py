@@ -13,13 +13,12 @@ class FollowerAnalysisFetcherAgent(RetrievalAgent):
 
     async def run(self, job_id: str, demand: str, **kwargs) -> list:
         sample = kwargs.get("sample", 25)
-        min_followers = kwargs.get("min_followers") or 10000
         username = kwargs.get("username")
 
         prompt = self._with_username_hint(demand, username)
         prompt += (
-            f"\n\nOnly include a matched profile if it is followed (via "
-            f"profile_relationship, edge='follows') by at least one other "
-            f"profile with more than {min_followers} followers."
+            "\n\nOnly include a matched profile if it is followed (via "
+            "profile_relationship, edge='follows') by at least one other profile "
+            "meeting the follower-count threshold stated in the demand above."
         )
         return await self._generate_and_execute(prompt, SCOPED_TABLES, sample, schema_doc=SCHEMA_DOC)

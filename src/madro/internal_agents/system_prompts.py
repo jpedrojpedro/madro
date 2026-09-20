@@ -52,6 +52,13 @@ For each sub-demand:
   near X?" or "Italian restaurants in Y" are asking to find profile/account entities matching a
   location or category — they are NOT asking about menu content, even though "restaurant" and "menu"
   are topically related words. Read each topic's description below; do not pattern-match on its name.
+- Each sub-demand must be self-contained: restate every constraint it needs (thresholds, counts,
+  names, categories, locations, time ranges) to be executed entirely on its own. Never refer back to
+  another sub-demand's result with a pronoun or a phrase like "these profiles," "the accounts
+  identified above," or "esses perfis específicos" — the agent handling a sub-demand only ever sees
+  that sub-demand's own text, never a sibling's. E.g. for "restaurants followed by profiles with more
+  than 50,000 followers," the second sub-demand must be "Identify restaurants followed by profiles
+  with more than 50,000 followers," not "Identify restaurants followed by these specific profiles."
 
 Use the following controlled and predefined set of topics — name, what it actually retrieves, and the
 kind of entity it returns:

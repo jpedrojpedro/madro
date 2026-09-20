@@ -3,6 +3,7 @@
     "id": "Q01",
     "complexity": "low (single-agent, textual)",
     "prompt": "What restaurants are near Balneário Camboriú?",
+    "rephrase": "Which restaurants are located in Balneário Camboriú?",
     "hint": [
       "benchmark_hints.profile",
       "benchmark_hints.profile_location"
@@ -105,6 +106,7 @@
     "id": "Q12",
     "complexity": "high (multi-modal, temporal)",
     "prompt": "What are Japanese restaurants main offered dishes?",
+    "rephrase": "What are the most frequently mentioned dishes offered by Japanese restaurants?",
     "hint": [
       "benchmark_hints.profile",
       "public.publication"
@@ -242,7 +244,7 @@
     "id": "Q26",
     "complexity": "high (multi-modal, temporal)",
     "prompt": "Has there been any recent crisis or complaints from @fluminensefc fanbase?",
-    "rephrase": "Has there been any recent negative comments on @fluminensefc publications?",
+    "rephrase": "Have there been any negative comments on @fluminensefc's most recent publications?",
     "hint": [
       "benchmark_hints.fluminensefc_comment",
       "benchmark_hints.fluminensefc_publication"
@@ -325,6 +327,7 @@
     "id": "Q35",
     "complexity": "low (single-agent, textual)",
     "prompt": "What are the best lifestyle tips given by the @eusougabriela profile?",
+    "rephrase": "What is the publication about lifestyle tips with the most positive comments on the @eusougabriela profile?",
     "hint": [
       "benchmark_hints.eusougabriela_publication"
     ]
@@ -405,6 +408,7 @@
     "id": "Q44",
     "complexity": "medium (multi-agent, textual)",
     "prompt": "Which steakhouses in Curitiba are most discussed in the comments?",
+    "rephrase": "Which steakhouse profile in Curitiba has the highest number of comments?",
     "hint": [
       "benchmark_hints.profile",
       "benchmark_hints.profile_location",
@@ -425,7 +429,7 @@
     "id": "Q46",
     "complexity": "medium (multi-agent, textual)",
     "prompt": "Which profiles similar to @eusougabriela focus on fitness content?",
-    "rephrase": "Which profiles have similar description and number of followers of @eusougabriela?",
+    "rephrase": "Which profiles that focus on fitness content have similar description and number of followers to @eusougabriela?",
     "hint": [
       "public.profile"
     ]
