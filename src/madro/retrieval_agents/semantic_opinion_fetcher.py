@@ -32,5 +32,5 @@ class SemanticOpinionFetcherAgent(RetrievalAgent):
             prompt += f"\n\nOnly include comments published on or before {date_to}."
         prompt = self._with_recency_hint(prompt, most_recent)
         return await self._generate_and_execute(
-            prompt, SCOPED_TABLES, sample, schema_doc=SCHEMA_DOC, target_entity=target_entity
+            prompt, SCOPED_TABLES, sample, schema_doc=SCHEMA_DOC, target_entity=target_entity, reveal=username
         )

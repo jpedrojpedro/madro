@@ -78,7 +78,7 @@ class RetrievalAgent(ABC):
 
     async def _generate_and_execute(
         self, prompt: str, tables: list[str], sample: int | None, schema_doc: str | None = None,
-        target_entity: str | None = None,
+        target_entity: str | None = None, reveal: str | None = None,
     ) -> list[dict]:
         """Writes and runs this agent's scoped SQL on the fly (schema scoped
         to `tables`, public.* only — see retrieval_agents/schema_scope.py and
@@ -99,11 +99,19 @@ class RetrievalAgent(ABC):
         _resolve_identity), also changes `identity_hint` — the resolver tells
         the SQL generator to alias its result rows by the overridden field
         (e.g. `profile_id` instead of `publication_id`), not just changes
-        what EntityResolver later calls the record's kind."""
+        what EntityResolver later calls the record's kind.
+
+        `reveal`, when given, is a pseudonymized @-mention alias (see
+        pseudonymization.py) this agent's own `username` kwarg carries —
+        reversed back to the real account name inside the generated SQL
+        text, before it executes, so the query actually matches real
+        database rows. See docs/adr/0012-rot13-pseudonymize-mentions.md."""
         schema_doc_text = SCHEMA_DOCS[schema_doc] if schema_doc else None
         resolver = get_retrieval_sql_resolver(tables, sample, schema_doc_text)
         identity = self._resolve_identity(target_entity)
-        outcome = await resolver.resolve(prompt, identity_hint=identity.field if identity else None)
+        outcome = await resolver.resolve(
+            prompt, identity_hint=identity.field if identity else None, reveal=reveal
+        )
         self.last_provenance_extra = {
             "generated_sql": outcome.sql,
             "sql_attempts": outcome.attempts,

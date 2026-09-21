@@ -12,6 +12,7 @@ from pydantic_ai import Agent
 from madro.config import get_model, run_agent
 from madro.aggregation.relevance_ranker import RelevanceRanker
 from madro.internal_agents.system_prompts import ResponseSynthesisSP
+from madro.pseudonymization import extract_mentions, pseudonymize, depseudonymize
 
 
 class ResponseSynthesisAgent:
@@ -39,10 +40,19 @@ class ResponseSynthesisAgent:
             ensure_ascii=False,
         )
 
+        # Retrieved entity data (e.g. a `username` field) comes straight from
+        # the real DB, so it re-exposes any @-mentioned handle even though
+        # thread_workflow.py already pseudonymized it going into decomposition
+        # — evidence here has no `@` prefix at all (bare DB column values), so
+        # it needs its own pass. See docs/adr/0012-rot13-pseudonymize-mentions.md.
+        handles = extract_mentions(demand)
+        safe_demand = pseudonymize(demand, handles)
+        safe_evidence = pseudonymize(evidence, handles)
+
         agent = Agent(
             model=get_model(),
-            system_prompt=ResponseSynthesisSP.format(demand=demand, evidence=evidence),
+            system_prompt=ResponseSynthesisSP.format(demand=safe_demand, evidence=safe_evidence),
         )
 
-        result = await run_agent(agent, demand)
-        return result.output
+        result = await run_agent(agent, safe_demand)
+        return depseudonymize(result.output, handles)

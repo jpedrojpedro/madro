@@ -33,6 +33,7 @@ from psycopg.rows import dict_row
 from django.conf import settings
 
 from madro.config import get_model, run_agent
+from madro.pseudonymization import reveal as reveal_alias
 
 AgentRunner = Callable[[Agent, str], Awaitable[AgentRunResult]]
 
@@ -196,7 +197,15 @@ class NaiveSQLBaseline:
         # model should pass plain_runner (or their own).
         self._runner: AgentRunner = runner or run_agent
 
-    async def resolve(self, prompt: str, identity_hint: str | None = None) -> NaiveSQLOutcome:
+    async def resolve(
+        self, prompt: str, identity_hint: str | None = None, reveal: str | None = None
+    ) -> NaiveSQLOutcome:
+        """`reveal`, when given, is a pseudonymized @-mention alias (see
+        pseudonymization.py) — reversed back to the real account name in the
+        generated SQL text, on every attempt, before it's validated or
+        executed, so the query actually matches real database rows and the
+        returned NaiveSQLOutcome.sql reflects what really ran. See
+        docs/adr/0012-rot13-pseudonymize-mentions.md."""
         history: list[FailedAttempt] = []
         base_prompt = self._build_prompt(prompt, identity_hint)
         current_prompt = base_prompt
@@ -205,19 +214,25 @@ class NaiveSQLBaseline:
         for attempt in range(1, self.MAX_ATTEMPTS + 1):
             result = await self._runner(self._agent, current_prompt)
             total_usage += result.usage()
+            # Aliased form — this is what any retry prompt below echoes back
+            # to the model, so a retry never re-exposes the real handle.
             sql_text = result.output.sql.strip()
+            # Revealed form — only for execution and the outcome actually
+            # reported/persisted, since the DB has real usernames, not
+            # aliases.
+            executable_sql = reveal_alias(sql_text, reveal) if reveal else sql_text
 
-            error = self._guard(sql_text)
+            error = self._guard(executable_sql)
             rows: list[dict] | None = None
             if error is None:
                 try:
-                    rows = await self._execute(sql_text)
+                    rows = await self._execute(executable_sql)
                 except Exception as exc:
                     error = str(exc)
 
             if error is None and rows:
                 return NaiveSQLOutcome(
-                    sql=sql_text,
+                    sql=executable_sql,
                     rows=rows if self.result_limit is None else rows[: self.result_limit],
                     error=None,
                     attempts=attempt, history=history, usage=total_usage,
@@ -229,14 +244,14 @@ class NaiveSQLBaseline:
                 # accept it, unless this was the last attempt available.
                 if attempt == self.MAX_ATTEMPTS:
                     return NaiveSQLOutcome(
-                        sql=sql_text, rows=[], error=None,
+                        sql=executable_sql, rows=[], error=None,
                         attempts=attempt, history=history, usage=total_usage,
                     )
                 error = EMPTY_RESULT_MESSAGE
 
             if attempt == self.MAX_ATTEMPTS:
                 return NaiveSQLOutcome(
-                    sql=sql_text, rows=None, error=error,
+                    sql=executable_sql, rows=None, error=error,
                     attempts=attempt, history=history, usage=total_usage,
                 )
 

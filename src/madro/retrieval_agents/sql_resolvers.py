@@ -31,8 +31,10 @@ class GeminiSQLResolver:
             result_limit=result_limit,
         )
 
-    async def resolve(self, prompt: str, identity_hint: str | None = None) -> NaiveSQLOutcome:
-        return await self._baseline.resolve(prompt, identity_hint=identity_hint)
+    async def resolve(
+        self, prompt: str, identity_hint: str | None = None, reveal: str | None = None
+    ) -> NaiveSQLOutcome:
+        return await self._baseline.resolve(prompt, identity_hint=identity_hint, reveal=reveal)
 
 
 class ArcticSQLResolver:
@@ -60,8 +62,10 @@ class ArcticSQLResolver:
             result_limit=result_limit,
         )
 
-    async def resolve(self, prompt: str, identity_hint: str | None = None) -> NaiveSQLOutcome:
-        return await self._baseline.resolve(prompt, identity_hint=identity_hint)
+    async def resolve(
+        self, prompt: str, identity_hint: str | None = None, reveal: str | None = None
+    ) -> NaiveSQLOutcome:
+        return await self._baseline.resolve(prompt, identity_hint=identity_hint, reveal=reveal)
 
 
 _RESOLVERS = {"gemini": GeminiSQLResolver, "arctic": ArcticSQLResolver}

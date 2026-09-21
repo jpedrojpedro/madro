@@ -15,5 +15,5 @@ class ProfileFetcherAgent(RetrievalAgent):
 
         prompt = self._with_username_hint(demand, username)
         return await self._generate_and_execute(
-            prompt, SCOPED_TABLES, sample, schema_doc=SCHEMA_DOC, target_entity=target_entity
+            prompt, SCOPED_TABLES, sample, schema_doc=SCHEMA_DOC, target_entity=target_entity, reveal=username
         )
