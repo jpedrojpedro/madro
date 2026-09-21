@@ -31,6 +31,7 @@ async def publish(
             role=MessageRole.SYSTEM,
             content=sub_demand.demand,
             sequence_number=sequence_number,
+            target_entity=sub_demand.target_entity,
         )
 
         async for agent_topic in AgentTopic.objects.filter(topic=topic, is_active=True).select_related("agent"):

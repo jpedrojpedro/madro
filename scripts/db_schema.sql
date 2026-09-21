@@ -76,6 +76,10 @@ create table flow_control.message (
     sequence_number serial,
     model_name text,
     token_count integer,
+    -- DemandCategorizationAgent's declared answer-entity kind for a
+    -- sub-demand message (e.g. 'profile') — null for non-sub-demand
+    -- messages. See docs/adr/0011-target-entity-overrides-agent-identity.md.
+    target_entity text,
     created_at timestamptz default (now() at time zone 'utc')
 );
 

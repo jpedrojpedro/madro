@@ -41,8 +41,44 @@ class RetrievalAgent(ABC):
             return prompt
         return f"{prompt}\n\nIf relevant, prioritize the profile with username '{username}'."
 
+    _RECENCY_ROW_CAP = 5
+
+    @classmethod
+    def _with_recency_hint(cls, prompt: str, most_recent: bool) -> str:
+        """Folds a relative-recency signal (extracted upstream by
+        AgentRunner._extract_recency — "most recent", "last", "mais
+        recentes") into the prompt. Ordering alone isn't enough: RelevanceRanker
+        re-ranks every candidate by its own lexical/semantic RRF score, ignoring
+        row order entirely, so an older-but-more-lexically-relevant row could
+        still outrank the true most-recent one downstream. Explicitly capping
+        the row count here keeps older rows out of the candidate pool
+        altogether, so whatever RelevanceRanker does with what's left is still
+        correct."""
+        if not most_recent:
+            return prompt
+        return (
+            f"{prompt}\n\nThis asks about the most recent item(s) — order by "
+            f"published_at DESC and return at most {cls._RECENCY_ROW_CAP} rows, "
+            f"so older (even if otherwise relevant) rows can't crowd these out."
+        )
+
+    def _resolve_identity(self, target_entity: str | None) -> EntityRef | None:
+        """`target_entity` (DemandCategorizationAgent's declared answer entity
+        for this sub-demand — see SubDemand.target_entity) overrides this
+        agent's own static `identity` when they genuinely differ, e.g.
+        PublicationFetcherAgent searching post content to characterize a
+        restaurant *profile* rather than answer with the post itself. Falls
+        back to `self.identity` as-is (preserving any `fallback` it declares)
+        when there's no override to apply, rather than reconstructing an
+        equivalent EntityRef from scratch. See
+        docs/adr/0011-target-entity-overrides-agent-identity.md."""
+        if target_entity and (not self.identity or target_entity != self.identity.kind):
+            return EntityRef(field=f"{target_entity}_id", kind=target_entity)
+        return self.identity
+
     async def _generate_and_execute(
-        self, prompt: str, tables: list[str], sample: int | None, schema_doc: str | None = None
+        self, prompt: str, tables: list[str], sample: int | None, schema_doc: str | None = None,
+        target_entity: str | None = None,
     ) -> list[dict]:
         """Writes and runs this agent's scoped SQL on the fly (schema scoped
         to `tables`, public.* only — see retrieval_agents/schema_scope.py and
@@ -57,11 +93,17 @@ class RetrievalAgent(ABC):
         (see each agent's own SCHEMA_DOC constant) resolved here to its text via
         schema_docs.SCHEMA_DOCS — GeminiSQLResolver's hand-authored scoped
         schema doc; ArcticSQLResolver ignores it and keeps building DDL from
-        `tables`. See docs/adr/0007-static-per-agent-schema-docs-for-gemini-resolver.md."""
+        `tables`. See docs/adr/0007-static-per-agent-schema-docs-for-gemini-resolver.md.
+
+        `target_entity`, when it overrides this agent's own identity (see
+        _resolve_identity), also changes `identity_hint` — the resolver tells
+        the SQL generator to alias its result rows by the overridden field
+        (e.g. `profile_id` instead of `publication_id`), not just changes
+        what EntityResolver later calls the record's kind."""
         schema_doc_text = SCHEMA_DOCS[schema_doc] if schema_doc else None
         resolver = get_retrieval_sql_resolver(tables, sample, schema_doc_text)
-        identity_field = self.identity.field if self.identity else None
-        outcome = await resolver.resolve(prompt, identity_hint=identity_field)
+        identity = self._resolve_identity(target_entity)
+        outcome = await resolver.resolve(prompt, identity_hint=identity.field if identity else None)
         self.last_provenance_extra = {
             "generated_sql": outcome.sql,
             "sql_attempts": outcome.attempts,
@@ -70,6 +112,10 @@ class RetrievalAgent(ABC):
                 "output_tokens": outcome.usage.output_tokens,
                 "total_tokens": outcome.usage.total_tokens,
             },
+            # Overrides AgentRunner.invoke()'s default `agent.identity` (the
+            # catalog's static declaration) via dict spread — only present
+            # when target_entity actually changed it.
+            **({"identity": identity.model_dump()} if identity is not self.identity else {}),
         }
         return outcome.rows or []
 

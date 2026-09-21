@@ -51,7 +51,10 @@ class ThreadView(View):
             ThreadOut(
                 thread_id=thread.id,
                 message_id=user_message.id,
-                sub_demands=[SubDemandOut(demand=s.demand, topic_name=s.topic_name) for s in decomposed.sub_demands],
+                sub_demands=[
+                    SubDemandOut(demand=s.demand, topic_name=s.topic_name, target_entity=s.target_entity)
+                    for s in decomposed.sub_demands
+                ],
             ).model_dump(mode="json"),
             status=201,
         )

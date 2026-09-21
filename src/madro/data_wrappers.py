@@ -32,6 +32,7 @@ class ThreadIn(BaseModel):
 class SubDemandOut(BaseModel):
     demand: str
     topic_name: str
+    target_entity: str
 
 
 class ThreadOut(BaseModel):
@@ -69,6 +70,10 @@ class TranslatedPrompt(BaseModel):
 class SubDemand(BaseModel):
     demand: str
     topic_name: str
+    # The kind of entity this sub-demand's answer should ultimately be (e.g.
+    # "profile"), independent of which topic/agent actually retrieves it —
+    # see docs/adr/0011-target-entity-overrides-agent-identity.md.
+    target_entity: str
 
 
 class DecomposedDemand(BaseModel):

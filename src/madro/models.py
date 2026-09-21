@@ -80,6 +80,13 @@ class Message(YamlExportMixin, db_models.Model):
     sequence_number = db_models.IntegerField()
     model_name = db_models.TextField(null=True, blank=True)
     token_count = db_models.IntegerField(null=True, blank=True)
+    # The entity kind DemandCategorizationAgent declared this sub-demand's
+    # answer should ultimately be (e.g. "profile"), independent of which
+    # table/agent actually retrieves it — null for non-sub-demand messages.
+    # Overrides the invoked RetrievalAgent's own static `identity` when they
+    # differ — see retrieval_agents/base.py's _resolve_identity() and
+    # docs/adr/0011-target-entity-overrides-agent-identity.md.
+    target_entity = db_models.TextField(null=True, blank=True)
     created_at = db_models.DateTimeField(auto_now_add=True)
 
     class Meta:

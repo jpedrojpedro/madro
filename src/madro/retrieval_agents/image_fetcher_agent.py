@@ -13,12 +13,15 @@ class ImageFetcherAgent(RetrievalAgent):
         date_from = kwargs.get("date_from")
         date_to = kwargs.get("date_to")
         username = kwargs.get("username")
+        target_entity = kwargs.get("target_entity")
+        most_recent = kwargs.get("most_recent", False)
 
         prompt = self._with_username_hint(demand, username)
         if date_from:
             prompt += f"\n\nOnly include images from publications published on or after {date_from}."
         if date_to:
             prompt += f"\n\nOnly include images from publications published on or before {date_to}."
+        prompt = self._with_recency_hint(prompt, most_recent)
         # The scoped schema's raw_file.data note ("never useful for a text
         # answer; don't select this") is correct for a text-answering agent —
         # wrong here, since this agent's whole job is fetching that data for
@@ -30,7 +33,9 @@ class ImageFetcherAgent(RetrievalAgent):
             "not a text answer."
         )
 
-        rows = await self._generate_and_execute(prompt, SCOPED_TABLES, sample, schema_doc=SCHEMA_DOC)
+        rows = await self._generate_and_execute(
+            prompt, SCOPED_TABLES, sample, schema_doc=SCHEMA_DOC, target_entity=target_entity
+        )
         return [self._decode_bytes_values(row) for row in rows]
 
     @staticmethod

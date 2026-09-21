@@ -97,6 +97,11 @@ class AgentRunner:
                 )
 
     _MENTION_RE = re.compile(r"@(\w+(?:\.\w+)*)")
+    # 4-digit years only, plausible for this dataset's scrape window — narrow
+    # enough that a follower/like count (e.g. "20000", 5 digits) can't match:
+    # \b requires a word boundary immediately after the 4th digit, which a
+    # 5th digit fails.
+    _YEAR_RE = re.compile(r"\b20\d{2}\b")
 
     @classmethod
     def _extract_mentioned_username(cls, demand: str) -> tuple[str, str | None]:
@@ -110,15 +115,53 @@ class AgentRunner:
         cleaned = (demand[:match.start()] + demand[match.end():]).strip()
         return cleaned, match.group(1)
 
+    @classmethod
+    def _extract_year(cls, demand: str) -> tuple[str, str | None]:
+        """Splits an explicit 4-digit year mention out of the demand text (e.g.
+        "posted daily specials in 2025" -> ("posted daily specials in", "2025")),
+        so retrieval agents can bound `published_at`/`published_at` comment dates
+        by an absolute range instead of relying on lexical search to surface the
+        year by coincidence. Only handles a literal year — relative recency
+        ("most recent", "last", "última") needs an ordering hint, not a date
+        bound, and isn't covered by this extractor."""
+        match = cls._YEAR_RE.search(demand)
+        if not match:
+            return demand, None
+        cleaned = (demand[:match.start()] + demand[match.end():]).strip()
+        return cleaned, match.group(0)
+
+    _RECENCY_RE = re.compile(
+        r"\b(mais recentes?|últimas?|recentes?|most recent|latest|last)\b", re.IGNORECASE
+    )
+
+    @classmethod
+    def _extract_recency(cls, demand: str) -> tuple[str, bool]:
+        """Splits a relative-recency phrase ("most recent", "last", "mais
+        recentes", "última") out of the demand text — unlike a literal year
+        (_extract_year), this has no absolute value to bound a date range
+        with, so it's surfaced as a boolean ordering signal instead: see
+        RetrievalAgent._with_recency_hint()."""
+        match = cls._RECENCY_RE.search(demand)
+        if not match:
+            return demand, False
+        cleaned = (demand[:match.start()] + demand[match.end():]).strip()
+        return cleaned, True
+
     async def invoke(self, job: JobExecution, sample: int | None = 25) -> NormalizedArtifact:
         agent: Agent = job.agent
         demand, username = self._extract_mentioned_username(job.demand.content)
+        demand, year = self._extract_year(demand)
+        demand, most_recent = self._extract_recency(demand)
         payload = {
             "job_id": str(job.job_id),
             "demand": demand,
             "schema": agent.mcp_schema,
             "sample": sample,
             "username": username,
+            "target_entity": job.demand.target_entity,
+            "date_from": f"{year}-01-01" if year else None,
+            "date_to": f"{year}-12-31" if year else None,
+            "most_recent": most_recent,
         }
 
         retrieval_agent = RetrievalAgent.from_uri(agent.uri, timeout=self.timeout)

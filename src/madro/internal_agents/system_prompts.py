@@ -59,6 +59,12 @@ For each sub-demand:
   that sub-demand's own text, never a sibling's. E.g. for "restaurants followed by profiles with more
   than 50,000 followers," the second sub-demand must be "Identify restaurants followed by profiles
   with more than 50,000 followers," not "Identify restaurants followed by these specific profiles."
+- Also state the sub-demand's target_entity: the kind of entity its ANSWER should ultimately be,
+  chosen from {entity_kinds}. This is about the answer, not the search mechanism — a topic's declared
+  "returns" kind (above) is what its underlying table naturally produces, which is not always the
+  same thing. E.g. "Italian restaurants known for pancetta dishes" is asking for a profile (a
+  restaurant), even though the only way to check is by searching publication captions for "pancetta" —
+  target_entity is "profile" there, regardless of which topic/agent actually performs that search.
 
 Use the following controlled and predefined set of topics — name, what it actually retrieves, and the
 kind of entity it returns:
