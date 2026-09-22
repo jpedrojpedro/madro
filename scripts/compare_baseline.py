@@ -246,16 +246,34 @@ def build_comparison_grid(
     baseline_entries: list[dict],
     ground_truth_entries: list[dict],
     questions: list[dict],
+    ground_truth_run_at: str | None = None,
+    per_question: dict | None = None,
+    baseline_model: str | None = None,
 ) -> Workbook:
     """One row-block of GRID_ROWS rows per question, in questions.json order,
-    with a blank separator row between blocks. Columns: question_id,
-    question, "ground-truth", the given baseline model(s), and one column
-    per distinct alpha/beta MADRO weighting found in allure-results (see
+    with a blank separator row between blocks. Columns: question_id, tier,
+    question, "ground-truth", the given baseline model(s), one column per
+    distinct alpha/beta MADRO weighting found in allure-results (see
     _latest_approach_per_alpha_beta — superseded sample sizes at the same
-    weighting are dropped), sorted by alpha descending. Identity values
-    repeated within a question's block (across ground truth, baselines,
-    and/or approaches) get a shared fill color, so overlaps are visible at a
-    glance."""
+    weighting are dropped, sorted by alpha descending), then — when
+    `per_question` is given — precision@1/5/10 and Jaccard@JACCARD_K for
+    baseline and MADRO side by side, sourced from the same `compare()` output
+    the JSON uses (not recomputed here), so the grid and the JSON can't
+    silently disagree on these numbers the way ground truth selection used
+    to. Identity values repeated within a question's block (across ground
+    truth, baselines, and/or approaches) get a shared fill color, so overlaps
+    are visible at a glance.
+
+    `ground_truth_run_at`, when given, pins which Ground Truth run the grid
+    is built from — same disambiguation as --ground-truth-run-at elsewhere in
+    this script. Left as None, this defaults to the most recent run found
+    (previously hardcoded here independently of what main() resolved for the
+    JSON output, so the grid and the JSON could silently disagree on which
+    Ground Truth was being compared against).
+
+    `per_question`/`baseline_model`: the same dict main() writes into the JSON
+    output and the --baseline-model it was built with — the metric columns
+    are omitted entirely if `per_question` isn't given."""
     approaches_raw: dict[str, list[dict]] = {}
     for r in all_results:
         approach = r["_parameters"].get("approach")
@@ -264,7 +282,7 @@ def build_comparison_grid(
 
     approach_labels = _latest_approach_per_alpha_beta(all_results)
 
-    ground_truth_selected, _ = _select_run(ground_truth_entries, None)
+    ground_truth_selected, _ = _select_run(ground_truth_entries, ground_truth_run_at)
     ground_truth_ids = _identity_lists_from_rows_attachment(allure_dir, ground_truth_selected, "Ground Truth result")
 
     baseline_ids_by_model = _baseline_identity_lists_by_model(allure_dir, baseline_entries)
@@ -275,6 +293,7 @@ def build_comparison_grid(
         approach_ids[approach] = _madro_identity_lists(allure_dir, entries)
 
     question_text_by_id = {q["id"]: q.get("prompt", "") for q in questions}
+    tier_by_id = {q["id"]: q.get("complexity", "").split(" ")[0] for q in questions}
 
     question_ids = set(ground_truth_ids)
     for ids_by_question in baseline_ids_by_model.values():
@@ -290,6 +309,30 @@ def build_comparison_grid(
         (f"alpha-{alpha}_beta-{beta}", approach_ids[approach]) for alpha, beta, approach in approach_labels
     ]
 
+    # (header, per_question side key, "precision"/"recall"/"jaccard", rank-or-None)
+    # — interleaved baseline/MADRO per metric, matching the JSON's own
+    # per_question shape (int rank keys, not "1"/"5"/"10" — this reads the
+    # live dict main() built, not a re-parsed JSON file).
+    base_label = f"baseline-{baseline_model}" if baseline_model else "baseline"
+    metric_columns: list[tuple[str, str, str, int | None]] = []
+    if per_question is not None:
+        for k in (1, 5, 10):
+            metric_columns.append((f"{base_label}-P@{k}", "baseline_vs_ground_truth", "precision", k))
+            metric_columns.append((f"madro-P@{k}", "madro_vs_ground_truth", "precision", k))
+        for k in (1, 5, 10):
+            metric_columns.append((f"{base_label}-R@{k}", "baseline_vs_ground_truth", "recall", k))
+            metric_columns.append((f"madro-R@{k}", "madro_vs_ground_truth", "recall", k))
+        metric_columns.append((f"{base_label}-Jac@{JACCARD_K}", "baseline_vs_ground_truth", "jaccard", None))
+        metric_columns.append((f"madro-Jac@{JACCARD_K}", "madro_vs_ground_truth", "jaccard", None))
+
+    def _metric_value(question_id: str, side: str, kind: str, k: int | None):
+        entry = (per_question or {}).get(question_id, {}).get(side, {})
+        if entry.get("status") != "ok":
+            return None
+        if kind in ("precision", "recall"):
+            return round(entry["metrics"][k][kind], 4)
+        return round(entry["jaccard_100"], 4)
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Comparison Grid"
@@ -297,13 +340,21 @@ def build_comparison_grid(
     header_font = Font(bold=True)
     ws.cell(row=1, column=1, value="question_id").font = header_font
     ws.column_dimensions["A"].width = 12
-    ws.cell(row=1, column=2, value="question").font = header_font
-    ws.column_dimensions["B"].width = 45
-    identity_col_start = 3
+    ws.cell(row=1, column=2, value="tier").font = header_font
+    ws.column_dimensions["B"].width = 12
+    ws.cell(row=1, column=3, value="question").font = header_font
+    ws.column_dimensions["C"].width = 45
+    identity_col_start = 4
     for i, (name, _) in enumerate(columns_meta):
         col = identity_col_start + i
         ws.cell(row=1, column=col, value=name).font = header_font
         ws.column_dimensions[get_column_letter(col)].width = 26
+
+    metric_col_start = identity_col_start + len(columns_meta)
+    for i, (name, *_rest) in enumerate(metric_columns):
+        col = metric_col_start + i
+        ws.cell(row=1, column=col, value=name).font = header_font
+        ws.column_dimensions[get_column_letter(col)].width = 16
 
     wrap_top = Alignment(wrap_text=True, vertical="top")
 
@@ -316,9 +367,13 @@ def build_comparison_grid(
         ws.merge_cells(start_row=block_start, start_column=1, end_row=block_end, end_column=1)
         ws.cell(row=block_start, column=1).alignment = wrap_top
 
-        ws.cell(row=block_start, column=2, value=question_text_by_id.get(question_id, ""))
+        ws.cell(row=block_start, column=2, value=tier_by_id.get(question_id, ""))
         ws.merge_cells(start_row=block_start, start_column=2, end_row=block_end, end_column=2)
         ws.cell(row=block_start, column=2).alignment = wrap_top
+
+        ws.cell(row=block_start, column=3, value=question_text_by_id.get(question_id, ""))
+        ws.merge_cells(start_row=block_start, start_column=3, end_row=block_end, end_column=3)
+        ws.cell(row=block_start, column=3).alignment = wrap_top
 
         block_values: dict[tuple[int, int], str] = {}
         for i, (_, ids_by_question) in enumerate(columns_meta):
@@ -330,6 +385,12 @@ def build_comparison_grid(
                 ws.cell(row=r, column=col, value=value).alignment = wrap_top
                 if value:
                     block_values[(r, col)] = value
+
+        for i, (_, side, kind, k) in enumerate(metric_columns):
+            col = metric_col_start + i
+            value = _metric_value(question_id, side, kind, k)
+            ws.cell(row=block_start, column=col, value=value)
+            ws.merge_cells(start_row=block_start, start_column=col, end_row=block_end, end_column=col)
 
         counts: dict[str, int] = {}
         for value in block_values.values():
@@ -345,7 +406,7 @@ def build_comparison_grid(
 
         row = block_end + 2  # blank separator row between question blocks
 
-    ws.freeze_panes = "C2"
+    ws.freeze_panes = "D2"
     return wb
 
 
@@ -571,7 +632,11 @@ def main() -> None:
     print(f"\nWrote {args.out}")
 
     questions = json.loads(QUESTIONS_PATH.read_text())
-    grid = build_comparison_grid(args.allure_dir, all_results, baseline_candidates, ground_truth_all, questions)
+    grid = build_comparison_grid(
+        args.allure_dir, all_results, baseline_candidates, ground_truth_all, questions,
+        ground_truth_run_at=args.ground_truth_run_at,
+        per_question=per_question, baseline_model=args.baseline_model,
+    )
     grid.save(args.grid_out)
     print(f"Wrote {args.grid_out}")
 
