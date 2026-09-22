@@ -21,6 +21,27 @@ Comments on publications, with reply threading.
 No `tsvector`/full-text index on `annotation` — filter/sort on it with plain
 `ILIKE` or just order by recency/likes if a demand needs comments.
 
+**Scoping comments to a target profile's own posts** ("comments on
+@handle's publications", "perception of @handle based on comments") means
+joining through `publication`, not through `comment.profile_id` directly —
+`comment.profile_id` is the **commenter**, a different profile from whoever
+owns the post being commented on:
+
+```sql
+SELECT c.id, c.annotation, c.num_likes, c.published_at
+FROM comment c
+JOIN publication pub ON c.publication_id = pub.id
+WHERE pub.profile_id = (SELECT id FROM profile WHERE username = '<handle>')
+```
+
+`WHERE c.profile_id = (...)` instead would return comments the target
+account *wrote* elsewhere on the platform, not comments made on its own
+posts — almost always the wrong entities for this kind of demand, and can
+silently return zero rows if the target account rarely comments elsewhere.
+Never scope with a no-op join condition like `LEFT JOIN ... ON TRUE`
+either — that returns every comment in the table, unfiltered; the `WHERE`
+clause above is what actually does the scoping.
+
 ## `profile`
 
 One row per Instagram profile/account.
