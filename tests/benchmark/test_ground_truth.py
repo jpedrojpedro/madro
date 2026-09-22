@@ -39,6 +39,9 @@ if _question_range:
     QUESTIONS = [q for q in QUESTIONS if q["id"] in _wanted_ids]
 
 RUN_TIMESTAMP = os.environ.get("GROUND_TRUTH_RUN_TIMESTAMP") or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+# NaiveSQLBaseline's own default (10) if unset — see
+# `make benchmark-ground-truth RESULT_LIMIT=100`.
+RESULT_LIMIT = int(os.environ.get("GROUND_TRUTH_RESULT_LIMIT", "10"))
 # Keeps the "gemini" segment even though there's only one model today, so
 # this stays parseable the same way as Baseline's "{label} @ {timestamp}"
 # parent_suite if a second Ground Truth model is ever added.
@@ -67,7 +70,9 @@ async def _run_question(question: dict) -> None:
     # subset of tables, so the schema (and therefore the Agent's system
     # prompt) can't be shared across questions the way Baseline's can.
     schema_doc = build_hint_schema(question["hint"])
-    ground_truth = NaiveSQLBaseline(model=get_model(), runner=run_agent, schema_doc=schema_doc)
+    ground_truth = NaiveSQLBaseline(
+        model=get_model(), runner=run_agent, schema_doc=schema_doc, result_limit=RESULT_LIMIT
+    )
     outcome = await ground_truth.resolve(_effective_prompt(question))
     allure.attach(outcome.sql, name="Ground Truth SQL", attachment_type=allure.attachment_type.TEXT)
     payload = {"rows": outcome.rows} if outcome.error is None else {"error": outcome.error}

@@ -60,8 +60,10 @@ benchmark:
 #   make benchmark-baseline
 #   make benchmark-baseline K="1 to 3"
 #   make benchmark-baseline MODEL=qwen2.5-coder
+#   make benchmark-baseline MODEL=gemini RESULT_LIMIT=100
 benchmark-baseline:
 	$(if $(K),BENCHMARK_QUESTION_RANGE="$(K)") \
+	$(if $(RESULT_LIMIT),BASELINE_RESULT_LIMIT=$(RESULT_LIMIT)) \
 	poetry run pytest -p no:django -m baseline --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_benchmark.py --ignore=tests/benchmark/test_ground_truth.py -v $(if $(MODEL),-k "$(MODEL)")
 
 # Ground Truth: the authoritative answer for each question, resolved via the
@@ -79,9 +81,11 @@ benchmark-baseline:
 #   make benchmark-ground-truth
 #   make benchmark-ground-truth K="1 to 3"
 #   make benchmark-ground-truth K="1 to 1" RUN_TIMESTAMP=2026-08-26T19:34:13Z
+#   make benchmark-ground-truth RESULT_LIMIT=100
 benchmark-ground-truth:
 	$(if $(K),BENCHMARK_QUESTION_RANGE="$(K)") \
 	$(if $(RUN_TIMESTAMP),GROUND_TRUTH_RUN_TIMESTAMP=$(RUN_TIMESTAMP)) \
+	$(if $(RESULT_LIMIT),GROUND_TRUTH_RESULT_LIMIT=$(RESULT_LIMIT)) \
 	poetry run pytest -p no:django -m ground_truth --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_benchmark.py --ignore=tests/benchmark/test_baseline.py -v
 
 # Compares an existing `make benchmark` run's Allure results against the

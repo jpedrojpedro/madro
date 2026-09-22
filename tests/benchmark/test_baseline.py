@@ -55,6 +55,9 @@ if _question_range:
     QUESTIONS = [q for q in QUESTIONS if q["id"] in _wanted_ids]
 
 RUN_TIMESTAMP = os.environ.get("BASELINE_RUN_TIMESTAMP") or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+# NaiveSQLBaseline's own default (10) if unset — see
+# `make benchmark-baseline RESULT_LIMIT=100`.
+RESULT_LIMIT = int(os.environ.get("BASELINE_RESULT_LIMIT", "10"))
 
 
 def _run_id(model_key: str) -> str:
@@ -79,7 +82,9 @@ def event_loop():
 def baseline(request) -> tuple[str, NaiveSQLBaseline]:
     model_key = request.param
     get_model_fn, runner, use_native_output = BASELINE_MODELS[model_key]
-    return model_key, NaiveSQLBaseline(model=get_model_fn(), runner=runner, use_native_output=use_native_output)
+    return model_key, NaiveSQLBaseline(
+        model=get_model_fn(), runner=runner, use_native_output=use_native_output, result_limit=RESULT_LIMIT
+    )
 
 
 @pytest.fixture(scope="session")

@@ -59,6 +59,7 @@ from tabulate import tabulate
 from tests.benchmark.baselines.comparison import (
     BASELINE_SUITE_PREFIX,
     GROUND_TRUTH_SUITE_PREFIX,
+    JACCARD_K,
     RANKS,
     compare,
     identity,
@@ -366,7 +367,7 @@ def _print_side_table(title: str, complexities: dict[str, str], per_question: di
         result = per_question[question_id][side]
         complexity = complexities.get(question_id, "")
         if result["status"] != "ok":
-            rows.append([question_id, complexity, result["status"], "", "", ""])
+            rows.append([question_id, complexity, result["status"], "", "", "", ""])
             continue
         rows.append([
             question_id,
@@ -374,10 +375,14 @@ def _print_side_table(title: str, complexities: dict[str, str], per_question: di
             "ok",
             " / ".join(f"{result['metrics'][k]['precision']:.2f}" for k in RANKS),
             " / ".join(f"{result['metrics'][k]['recall']:.2f}" for k in RANKS),
+            f"{result['jaccard_100']:.2f}",
             result["identity_match"],
         ])
     print(f"\n{title}")
-    print(tabulate(rows, headers=["id", "complexity", "status", "precision@1/5/10", "recall@1/5/10", "identity_match"]))
+    print(tabulate(
+        rows,
+        headers=["id", "complexity", "status", "precision@1/5/10", "recall@1/5/10", f"jaccard@{JACCARD_K}", "identity_match"],
+    ))
 
 
 def _aggregate(per_question: dict, side: str) -> dict:
@@ -393,6 +398,7 @@ def _aggregate(per_question: dict, side: str) -> dict:
     reliability and ranking accuracy remain two separate, visible numbers."""
     values = {k: {"precision": [], "recall": []} for k in RANKS}
     identity_matches = []
+    jaccard_values: list[float] = []
     valid_n = 0
     for entry in per_question.values():
         result = entry[side]
@@ -403,12 +409,16 @@ def _aggregate(per_question: dict, side: str) -> dict:
             for k in RANKS:
                 values[k]["precision"].append(result["metrics"][k]["precision"])
                 values[k]["recall"].append(result["metrics"][k]["recall"])
+            jaccard_values.append(result["jaccard_100"])
             if result["identity_match"] is not None:
                 identity_matches.append(result["identity_match"])
         else:
             for k in RANKS:
                 values[k]["precision"].append(0.0)
                 values[k]["recall"].append(0.0)
+            # Same fixed-denominator convention as precision/recall above — a
+            # side that failed to answer scores 0 here too, not excluded.
+            jaccard_values.append(0.0)
 
     summary = {
         k: {
@@ -419,6 +429,7 @@ def _aggregate(per_question: dict, side: str) -> dict:
         for k, v in values.items()
     }
     summary["valid_n"] = valid_n
+    summary["jaccard_100_mean"] = sum(jaccard_values) / len(jaccard_values) if jaccard_values else None
     summary["identity_match_rate"] = (
         sum(identity_matches) / len(identity_matches) if identity_matches else None
     )
@@ -540,8 +551,11 @@ def main() -> None:
         headers=["side", "k", "precision_mean", "recall_mean", "n", "valid_n"],
     ))
     print(tabulate(
-        [[side, summary["identity_match_rate"], summary["identity_match_n"]] for side, summary in aggregate.items()],
-        headers=["side", "identity_match_rate", "identity_match_n"],
+        [
+            [side, summary["jaccard_100_mean"], summary["identity_match_rate"], summary["identity_match_n"]]
+            for side, summary in aggregate.items()
+        ],
+        headers=["side", f"jaccard_{JACCARD_K}_mean", "identity_match_rate", "identity_match_n"],
     ))
 
     output = {

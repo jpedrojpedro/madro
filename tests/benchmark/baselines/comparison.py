@@ -15,6 +15,13 @@ entities" attachment (or `RankedEntity` instances' own shape), not just
 ID_FIELD_PRIORITY = ("profile_id", "publication_id", "comment_id", "follower_profile_id")
 RANKS = (1, 5, 10)
 
+# Coverage over the full (up to 100-result) retrieval, order-independent —
+# not a textbook Jaccard index (that would divide by the *union*'s size);
+# named to match how it's described and used: "how much of Ground Truth did
+# this side surface at all, regardless of rank." Distinct from recall@k
+# above, which is always computed over the top-k slice of both sides.
+JACCARD_K = 100
+
 # test_baseline.py labels each baseline result's Allure parent_suite as
 # f"{BASELINE_SUITE_PREFIX}{model_key} @ {timestamp}" — the same
 # "{label} @ {timestamp}" convention test_benchmark.py uses for its own
@@ -86,7 +93,11 @@ def compare(reference_records: list[dict], retrieved_records: list[dict]) -> dic
     Also reports whether the two sides even agree on *what kind* of entity
     they're returning (`identity_match`) — a real 0% overlap on the wrong
     entity type isn't a ranking failure, it's a granularity mismatch, and
-    the two shouldn't be conflated."""
+    the two shouldn't be conflated.
+
+    `jaccard_100` is a separate, coarser question from precision/recall@k:
+    ignoring rank entirely, how much of Ground Truth did retrieved surface
+    anywhere in its (up to JACCARD_K-sized) result set."""
     reference_ids, reference_dropped = _ids(reference_records)
     retrieved_ids, retrieved_dropped = _ids(retrieved_records)
 
@@ -102,6 +113,13 @@ def compare(reference_records: list[dict], retrieved_records: list[dict]) -> dic
             "reference_count": len(topk_reference),
             "retrieved_count": len(topk_retrieved),
         }
+
+    # Whole-set overlap (not sliced to any k, order ignored entirely) over
+    # Ground Truth's own size — capped at JACCARD_K, though Ground Truth is
+    # generated with that same cap so this rarely actually bites.
+    full_overlap = set(reference_ids) & set(retrieved_ids)
+    jaccard_denominator = min(JACCARD_K, len(reference_ids))
+    jaccard_100 = len(full_overlap) / jaccard_denominator if jaccard_denominator else 0.0
 
     positions_reference = {key: i + 1 for i, key in enumerate(reference_ids)}
     positions_retrieved = {key: i + 1 for i, key in enumerate(retrieved_ids)}
@@ -131,6 +149,7 @@ def compare(reference_records: list[dict], retrieved_records: list[dict]) -> dic
 
     return {
         "metrics": metrics,
+        "jaccard_100": jaccard_100,
         "diff": diff,
         "reference_dropped_no_identity": reference_dropped,
         "retrieved_dropped_no_identity": retrieved_dropped,
