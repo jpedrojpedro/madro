@@ -60,10 +60,16 @@ class RelevanceRanker:
         self,
         alpha: float | None = None,
         beta: float | None = None,
-        top_k: int = 10,
+        top_k: int | None = 10,
         normalizer: MultimodalNormalizer | None = None,
         entity_resolver: EntityResolver | None = None,
     ):
+        # None means no cap — `pool_results[:None]` (below) returns the whole
+        # pool, same "-1 means unlimited" convention as BENCHMARK_SAMPLE. Callers
+        # should generally pass the same value they used for `sample`/SQL LIMIT
+        # (e.g. test_benchmark.py passes SAMPLE) — a top_k smaller than that
+        # silently discards ranked candidates the SQL layer already spent effort
+        # fetching, and one larger than it has nothing extra to keep.
         cfg = load_config()
         self.alpha = alpha if alpha is not None else cfg.fusion.alpha
         self.beta = beta if beta is not None else cfg.fusion.beta

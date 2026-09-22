@@ -110,7 +110,11 @@ def pipeline() -> Pipeline:
     """
     normalizer = MultimodalNormalizer()
     runner = AgentRunner(enrichment_agent=EnrichmentAgent(), normalizer=normalizer)
-    ranker = RelevanceRanker(alpha=ALPHA, beta=BETA, normalizer=normalizer)
+    # top_k=SAMPLE: keeps ranking's output cap in step with the SQL layer's own
+    # LIMIT, so raising SAMPLE actually raises how many results MADRO can
+    # surface, not just how many candidates it evaluates before truncating back
+    # down to a stale default — see relevance_ranker.py's __init__.
+    ranker = RelevanceRanker(alpha=ALPHA, beta=BETA, normalizer=normalizer, top_k=SAMPLE)
     synthesizer = ResponseSynthesisAgent(ranker=ranker)
     return Pipeline(runner=runner, ranker=ranker, synthesizer=synthesizer)
 
