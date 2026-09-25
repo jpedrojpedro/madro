@@ -115,6 +115,10 @@ class RetrievalAgent(ABC):
         self.last_provenance_extra = {
             "generated_sql": outcome.sql,
             "sql_attempts": outcome.attempts,
+            # None whenever the final SQL executed (even if it returned no
+            # rows) — how the benchmark tells a failed translation apart from
+            # an empty one, since both return [] below.
+            "sql_error": outcome.error,
             "usage": {
                 "input_tokens": outcome.usage.input_tokens,
                 "output_tokens": outcome.usage.output_tokens,
