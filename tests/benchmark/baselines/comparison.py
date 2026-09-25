@@ -13,14 +13,10 @@ entities" attachment (or `RankedEntity` instances' own shape), not just
 """
 
 ID_FIELD_PRIORITY = ("profile_id", "publication_id", "comment_id", "follower_profile_id")
-RANKS = (1, 5, 10)
-
-# Coverage over the full (up to 100-result) retrieval, order-independent —
-# not a textbook Jaccard index (that would divide by the *union*'s size);
-# named to match how it's described and used: "how much of Ground Truth did
-# this side surface at all, regardless of rank." Distinct from recall@k
-# above, which is always computed over the top-k slice of both sides.
-JACCARD_K = 100
+# 100 is the full-answer case: both sides are capped at 100 results, so @100
+# is precision/recall over the whole predicted answer (thesis only — the
+# paper reports 1/5/10).
+RANKS = (1, 5, 10, 100)
 
 # test_baseline.py labels each baseline result's Allure parent_suite as
 # f"{BASELINE_SUITE_PREFIX}{model_key} @ {timestamp}" — the same
@@ -84,42 +80,32 @@ def _ids(records: list[dict]) -> tuple[list[tuple[str, str]], int]:
 def compare(reference_records: list[dict], retrieved_records: list[dict]) -> dict:
     """`reference_records` (Ground Truth's resolved rows) is the "relevant"
     set; `retrieved_records` (Baseline's rows or MADRO's ranked entities) is
-    scored against it — precision@k is the fraction of retrieved's top-k
-    also present in reference's top-k, recall@k the fraction of reference's
-    top-k that retrieved also found. The two diverge when the lists have
-    different lengths (e.g. Ground Truth resolves fewer than k distinct
-    entities while Baseline always returns up to 10).
+    scored against it. Only the retrieved side is cut at k: precision@k is
+    the fraction of retrieved's top-k present anywhere in the reference, and
+    recall@k the fraction of the whole reference found in retrieved's top-k —
+    set containment normalised by one side's size, see
+    docs/adr/0013-reference-100-rebuilt-from-the-2026-08-28-ground-truth.md.
 
     Also reports whether the two sides even agree on *what kind* of entity
     they're returning (`identity_match`) — a real 0% overlap on the wrong
     entity type isn't a ranking failure, it's a granularity mismatch, and
     the two shouldn't be conflated.
-
-    `jaccard_100` is a separate, coarser question from precision/recall@k:
-    ignoring rank entirely, how much of Ground Truth did retrieved surface
-    anywhere in its (up to JACCARD_K-sized) result set."""
+"""
     reference_ids, reference_dropped = _ids(reference_records)
     retrieved_ids, retrieved_dropped = _ids(retrieved_records)
 
+    reference_set = set(reference_ids)
     metrics = {}
     for k in RANKS:
-        topk_reference = reference_ids[:k]
-        topk_retrieved = retrieved_ids[:k]
-        overlap = set(topk_reference) & set(topk_retrieved)
+        topk_retrieved = set(retrieved_ids[:k])
+        overlap = topk_retrieved & reference_set
         metrics[k] = {
             "precision": len(overlap) / len(topk_retrieved) if topk_retrieved else 0.0,
-            "recall": len(overlap) / len(topk_reference) if topk_reference else 0.0,
+            "recall": len(overlap) / len(reference_set) if reference_set else 0.0,
             "overlap": len(overlap),
-            "reference_count": len(topk_reference),
+            "reference_count": len(reference_set),
             "retrieved_count": len(topk_retrieved),
         }
-
-    # Whole-set overlap (not sliced to any k, order ignored entirely) over
-    # Ground Truth's own size — capped at JACCARD_K, though Ground Truth is
-    # generated with that same cap so this rarely actually bites.
-    full_overlap = set(reference_ids) & set(retrieved_ids)
-    jaccard_denominator = min(JACCARD_K, len(reference_ids))
-    jaccard_100 = len(full_overlap) / jaccard_denominator if jaccard_denominator else 0.0
 
     positions_reference = {key: i + 1 for i, key in enumerate(reference_ids)}
     positions_retrieved = {key: i + 1 for i, key in enumerate(retrieved_ids)}
@@ -149,7 +135,6 @@ def compare(reference_records: list[dict], retrieved_records: list[dict]) -> dic
 
     return {
         "metrics": metrics,
-        "jaccard_100": jaccard_100,
         "diff": diff,
         "reference_dropped_no_identity": reference_dropped,
         "retrieved_dropped_no_identity": retrieved_dropped,

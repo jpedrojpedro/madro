@@ -23,7 +23,7 @@ Usage:
         --out my_comparison.json --grid-out my_grid.xlsx
 
 Outputs two files:
-  --out (comparison_results.json): precision/recall@1/5/10 + positional diff
+  --out (comparison_results.json): precision/recall@1/5/10/100 + positional diff
     + identity-match flag for Baseline-vs-Ground-Truth and MADRO-vs-Ground-
     Truth, for the ONE approach selected via --approach and the ONE baseline
     model selected via --baseline-model (default: gemini — test_baseline.py
@@ -59,7 +59,6 @@ from tabulate import tabulate
 from tests.benchmark.baselines.comparison import (
     BASELINE_SUITE_PREFIX,
     GROUND_TRUTH_SUITE_PREFIX,
-    JACCARD_K,
     RANKS,
     compare,
     identity,
@@ -71,22 +70,21 @@ from tests.benchmark.baselines.comparison import (
 DEFAULT_BASELINE_MODEL = "gemini"
 
 # Questions dropped entirely from precision/recall (both sides) and from the
-# printed per-question tables — verified directly against the GroundTruth_gemini
-# run (2026-08-28T21:25:17Z) that each returns 0 rows, so there is nothing for
-# either side to be scored against. Kept here (rather than silently scoring as
-# a false 0 — see _side_result, which treats an empty-but-present rows/ranked
-# list as a real "ok" comparison, not "missing") so the exclusion is visible
-# and its reason is on record. Q30 is deliberately NOT here: its Gemini
-# content-filter block happens during MADRO's Response Synthesis step, after
-# retrieval and ranking already completed — its ranked-entities comparison
-# against Ground Truth is a genuine (if poor) result, not a data artifact.
-EXCLUDED_QUESTIONS: dict[str, str] = {
-    "Q06": "Ground Truth query returns 0 rows (empty Golden Standard)",
-    "Q07": "Ground Truth query returns 0 rows (empty Golden Standard)",
-    "Q08": "Ground Truth query returns 0 rows (empty Golden Standard)",
-    "Q11": "Ground Truth query returns 0 rows (empty Golden Standard)",
-    "Q47": "Ground Truth query returns 0 rows (empty Golden Standard)",
-}
+# printed per-question tables: those whose selected Ground Truth run resolved
+# no entity ID at all — no rows, or only rows with no identity column (e.g. a
+# single aggregate row) — so there is nothing for either side to be scored
+# against. Derived from the Ground Truth run itself rather than hardcoded, so
+# it can't drift from the run being compared against. Q30 is deliberately
+# never excluded: its Gemini content-filter block happens during MADRO's
+# Response Synthesis step, after retrieval and ranking already completed.
+EMPTY_REFERENCE_REASON = "Ground Truth resolves no entity ID (empty reference)"
+
+
+def empty_reference_questions(ground_truth_by_id: dict[str, list[dict]]) -> set[str]:
+    return {
+        question_id for question_id, rows in ground_truth_by_id.items()
+        if not any(identity(row) for row in rows)
+    }
 
 QUESTIONS_PATH = Path(__file__).resolve().parent.parent / "tests" / "benchmark" / "questions.json"
 
@@ -256,7 +254,7 @@ def build_comparison_grid(
     distinct alpha/beta MADRO weighting found in allure-results (see
     _latest_approach_per_alpha_beta — superseded sample sizes at the same
     weighting are dropped, sorted by alpha descending), then — when
-    `per_question` is given — precision@1/5/10 and Jaccard@JACCARD_K for
+    `per_question` is given — precision/recall@RANKS for
     baseline and MADRO side by side, sourced from the same `compare()` output
     the JSON uses (not recomputed here), so the grid and the JSON can't
     silently disagree on these numbers the way ground truth selection used
@@ -309,29 +307,23 @@ def build_comparison_grid(
         (f"alpha-{alpha}_beta-{beta}", approach_ids[approach]) for alpha, beta, approach in approach_labels
     ]
 
-    # (header, per_question side key, "precision"/"recall"/"jaccard", rank-or-None)
+    # (header, per_question side key, "precision"/"recall", rank)
     # — interleaved baseline/MADRO per metric, matching the JSON's own
     # per_question shape (int rank keys, not "1"/"5"/"10" — this reads the
     # live dict main() built, not a re-parsed JSON file).
     base_label = f"baseline-{baseline_model}" if baseline_model else "baseline"
-    metric_columns: list[tuple[str, str, str, int | None]] = []
+    metric_columns: list[tuple[str, str, str, int]] = []
     if per_question is not None:
-        for k in (1, 5, 10):
-            metric_columns.append((f"{base_label}-P@{k}", "baseline_vs_ground_truth", "precision", k))
-            metric_columns.append((f"madro-P@{k}", "madro_vs_ground_truth", "precision", k))
-        for k in (1, 5, 10):
-            metric_columns.append((f"{base_label}-R@{k}", "baseline_vs_ground_truth", "recall", k))
-            metric_columns.append((f"madro-R@{k}", "madro_vs_ground_truth", "recall", k))
-        metric_columns.append((f"{base_label}-Jac@{JACCARD_K}", "baseline_vs_ground_truth", "jaccard", None))
-        metric_columns.append((f"madro-Jac@{JACCARD_K}", "madro_vs_ground_truth", "jaccard", None))
+        for kind, short in (("precision", "P"), ("recall", "R")):
+            for k in RANKS:
+                metric_columns.append((f"{base_label}-{short}@{k}", "baseline_vs_ground_truth", kind, k))
+                metric_columns.append((f"madro-{short}@{k}", "madro_vs_ground_truth", kind, k))
 
-    def _metric_value(question_id: str, side: str, kind: str, k: int | None):
+    def _metric_value(question_id: str, side: str, kind: str, k: int):
         entry = (per_question or {}).get(question_id, {}).get(side, {})
         if entry.get("status") != "ok":
             return None
-        if kind in ("precision", "recall"):
-            return round(entry["metrics"][k][kind], 4)
-        return round(entry["jaccard_100"], 4)
+        return round(entry["metrics"][k][kind], 4)
 
     wb = Workbook()
     ws = wb.active
@@ -428,7 +420,7 @@ def _print_side_table(title: str, complexities: dict[str, str], per_question: di
         result = per_question[question_id][side]
         complexity = complexities.get(question_id, "")
         if result["status"] != "ok":
-            rows.append([question_id, complexity, result["status"], "", "", "", ""])
+            rows.append([question_id, complexity, result["status"], "", "", ""])
             continue
         rows.append([
             question_id,
@@ -436,13 +428,12 @@ def _print_side_table(title: str, complexities: dict[str, str], per_question: di
             "ok",
             " / ".join(f"{result['metrics'][k]['precision']:.2f}" for k in RANKS),
             " / ".join(f"{result['metrics'][k]['recall']:.2f}" for k in RANKS),
-            f"{result['jaccard_100']:.2f}",
             result["identity_match"],
         ])
     print(f"\n{title}")
     print(tabulate(
         rows,
-        headers=["id", "complexity", "status", "precision@1/5/10", "recall@1/5/10", f"jaccard@{JACCARD_K}", "identity_match"],
+        headers=["id", "complexity", "status", "precision@" + "/".join(map(str, RANKS)), "recall@" + "/".join(map(str, RANKS)), "identity_match"],
     ))
 
 
@@ -459,7 +450,6 @@ def _aggregate(per_question: dict, side: str) -> dict:
     reliability and ranking accuracy remain two separate, visible numbers."""
     values = {k: {"precision": [], "recall": []} for k in RANKS}
     identity_matches = []
-    jaccard_values: list[float] = []
     valid_n = 0
     for entry in per_question.values():
         result = entry[side]
@@ -470,16 +460,12 @@ def _aggregate(per_question: dict, side: str) -> dict:
             for k in RANKS:
                 values[k]["precision"].append(result["metrics"][k]["precision"])
                 values[k]["recall"].append(result["metrics"][k]["recall"])
-            jaccard_values.append(result["jaccard_100"])
             if result["identity_match"] is not None:
                 identity_matches.append(result["identity_match"])
         else:
             for k in RANKS:
                 values[k]["precision"].append(0.0)
                 values[k]["recall"].append(0.0)
-            # Same fixed-denominator convention as precision/recall above — a
-            # side that failed to answer scores 0 here too, not excluded.
-            jaccard_values.append(0.0)
 
     summary = {
         k: {
@@ -490,7 +476,6 @@ def _aggregate(per_question: dict, side: str) -> dict:
         for k, v in values.items()
     }
     summary["valid_n"] = valid_n
-    summary["jaccard_100_mean"] = sum(jaccard_values) / len(jaccard_values) if jaccard_values else None
     summary["identity_match_rate"] = (
         sum(identity_matches) / len(identity_matches) if identity_matches else None
     )
@@ -574,12 +559,12 @@ def main() -> None:
             baseline_by_id[question_id] = payload.get("rows") or []
 
     all_ids = set(ground_truth_by_id) | set(ground_truth_errors) | set(madro_by_id) | set(baseline_by_id) | set(baseline_errors)
-    excluded_present = sorted(all_ids & set(EXCLUDED_QUESTIONS), key=_question_sort_key)
-    if excluded_present:
+    excluded = empty_reference_questions(ground_truth_by_id)
+    if excluded:
         print("\nExcluded from precision/recall:")
-        for question_id in excluded_present:
-            print(f"  {question_id}: {EXCLUDED_QUESTIONS[question_id]}")
-    all_ids -= set(EXCLUDED_QUESTIONS)
+        for question_id in sorted(excluded, key=_question_sort_key):
+            print(f"  {question_id}: {EMPTY_REFERENCE_REASON}")
+    all_ids -= excluded
 
     per_question = {}
     for question_id in all_ids:
@@ -613,10 +598,10 @@ def main() -> None:
     ))
     print(tabulate(
         [
-            [side, summary["jaccard_100_mean"], summary["identity_match_rate"], summary["identity_match_n"]]
+            [side, summary["identity_match_rate"], summary["identity_match_n"]]
             for side, summary in aggregate.items()
         ],
-        headers=["side", f"jaccard_{JACCARD_K}_mean", "identity_match_rate", "identity_match_n"],
+        headers=["side", "identity_match_rate", "identity_match_n"],
     ))
 
     output = {
