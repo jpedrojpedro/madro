@@ -1,4 +1,4 @@
-.PHONY: start migrate test lint db benchmark benchmark-baseline benchmark-ground-truth compare-baseline delete-suite
+.PHONY: start migrate test lint db benchmark benchmark-baseline benchmark-ground-truth benchmark-reference-rerun compare-baseline delete-suite
 
 db:
 	docker compose up -d
@@ -41,7 +41,7 @@ benchmark:
 	BENCHMARK_BETA=$(FUSION_SEM) \
 	$(if $(RUN_TIMESTAMP),BENCHMARK_RUN_TIMESTAMP=$(RUN_TIMESTAMP)) \
 	$(if $(K),BENCHMARK_QUESTION_RANGE="$(K)") \
-	poetry run pytest -p no:django -m benchmark --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_baseline.py --ignore=tests/benchmark/test_ground_truth.py -v
+	poetry run pytest -p no:django -m benchmark --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_baseline.py --ignore=tests/benchmark/test_ground_truth.py --ignore=tests/benchmark/test_reference_rerun.py -v
 
 # Naive one-shot SQL baseline against dowser — decoupled from `benchmark`
 # above so it can be (re)run without re-executing MADRO's full pipeline
@@ -64,7 +64,7 @@ benchmark:
 benchmark-baseline:
 	$(if $(K),BENCHMARK_QUESTION_RANGE="$(K)") \
 	$(if $(RESULT_LIMIT),BASELINE_RESULT_LIMIT=$(RESULT_LIMIT)) \
-	poetry run pytest -p no:django -m baseline --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_benchmark.py --ignore=tests/benchmark/test_ground_truth.py -v $(if $(MODEL),-k "$(MODEL)")
+	poetry run pytest -p no:django -m baseline --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_benchmark.py --ignore=tests/benchmark/test_ground_truth.py --ignore=tests/benchmark/test_reference_rerun.py -v $(if $(MODEL),-k "$(MODEL)")
 
 # Ground Truth: the authoritative answer for each question, resolved via the
 # same zero-shot SQL resolver as Baseline but scoped to only the tables
@@ -86,7 +86,20 @@ benchmark-ground-truth:
 	$(if $(K),BENCHMARK_QUESTION_RANGE="$(K)") \
 	$(if $(RUN_TIMESTAMP),GROUND_TRUTH_RUN_TIMESTAMP=$(RUN_TIMESTAMP)) \
 	$(if $(RESULT_LIMIT),GROUND_TRUTH_RESULT_LIMIT=$(RESULT_LIMIT)) \
-	poetry run pytest -p no:django -m ground_truth --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_benchmark.py --ignore=tests/benchmark/test_baseline.py -v
+	poetry run pytest -p no:django -m ground_truth --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_benchmark.py --ignore=tests/benchmark/test_baseline.py --ignore=tests/benchmark/test_reference_rerun.py -v
+
+# Reference-100 (the paper's Ground Truth): each question's 2026-08-28 Ground
+# Truth SQL from allure-results-thesis/, re-executed with LIMIT 100 — or
+# regenerated under that run's protocol for the questions whose rephrase has
+# changed since. See tests/benchmark/test_reference_rerun.py and
+# docs/adr/0013-reference-100-rebuilt-from-the-2026-08-28-ground-truth.md.
+# K/RUN_TIMESTAMP resume a partial run, same as benchmark-ground-truth:
+#   make benchmark-reference-rerun
+#   make benchmark-reference-rerun K="12 to 12" RUN_TIMESTAMP=2026-09-25T20:00:00Z
+benchmark-reference-rerun:
+	$(if $(K),BENCHMARK_QUESTION_RANGE="$(K)") \
+	$(if $(RUN_TIMESTAMP),GROUND_TRUTH_RUN_TIMESTAMP=$(RUN_TIMESTAMP)) \
+	poetry run pytest -p no:django -m reference_rerun --alluredir=allure-results tests/benchmark --ignore=tests/benchmark/test_benchmark.py --ignore=tests/benchmark/test_baseline.py --ignore=tests/benchmark/test_ground_truth.py -v
 
 # Compares an existing `make benchmark` run's Allure results against the
 # `make benchmark-baseline` run's Allure results — read-only, no pipeline

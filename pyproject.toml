@@ -41,4 +41,5 @@ markers = [
     "benchmark: live end-to-end MADRO benchmark (hits real DBs and LLMs, run via `make benchmark`)",
     "baseline: naive one-shot SQL baseline against dowser, run via `make benchmark-baseline`",
     "ground_truth: hint-scoped zero-shot SQL ground truth against dowser, run via `make benchmark-ground-truth`",
+    "reference_rerun: Reference-100 rebuilt from the 2026-08-28 ground truth run, run via `make benchmark-reference-rerun`",
 ]
