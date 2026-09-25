@@ -78,7 +78,9 @@ def get_qwen_coder_model() -> OpenAIChatModel:
     requires a non-empty string."""
     cfg = load_config()
     provider = OpenAIProvider(base_url=OLLAMA_BASE_URL, api_key="ollama")
-    return OpenAIChatModel(cfg.qwen_baseline_model.name, provider=provider)
+    return OpenAIChatModel(
+        cfg.qwen_baseline_model.name, provider=provider, settings={"temperature": cfg.qwen_baseline_model.temperature}
+    )
 
 
 def get_llama_model() -> OpenAIChatModel:
@@ -87,7 +89,9 @@ def get_llama_model() -> OpenAIChatModel:
     a generalist model rather than a code-specialized one."""
     cfg = load_config()
     provider = OpenAIProvider(base_url=OLLAMA_BASE_URL, api_key="ollama")
-    return OpenAIChatModel(cfg.llama_baseline_model.name, provider=provider)
+    return OpenAIChatModel(
+        cfg.llama_baseline_model.name, provider=provider, settings={"temperature": cfg.llama_baseline_model.temperature}
+    )
 
 
 def get_retrieval_sql_model() -> OpenAIChatModel:
