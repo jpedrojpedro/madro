@@ -106,7 +106,6 @@
     "id": "Q12",
     "complexity": "high (multi-modal, temporal)",
     "prompt": "What are Japanese restaurants main offered dishes?",
-    "rephrase": "What are the most frequently mentioned dishes offered by Japanese restaurants?",
     "hint": [
       "benchmark_hints.profile",
       "public.publication"

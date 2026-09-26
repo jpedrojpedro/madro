@@ -43,7 +43,10 @@ SOURCE_ALLURE_DIR = Path("allure-results-thesis")
 SOURCE_RUN_AT = "2026-08-28T21:25:17Z"
 # Questions whose `rephrase` changed in questions.json after SOURCE_RUN_AT
 # (commit e2a6740) — their source SQL answers a different effective prompt.
-REGENERATED = {"Q01", "Q12", "Q13", "Q15", "Q17", "Q26", "Q29", "Q35", "Q44", "Q46"}
+# Q12's rephrase was reverted instead: it steered every generation towards a
+# literal 'Japanese' category that doesn't exist, while its source SQL answers
+# the original prompt with a non-empty result.
+REGENERATED = {"Q01", "Q13", "Q15", "Q17", "Q26", "Q29", "Q35", "Q44", "Q46"}
 SOURCE_LIMIT = 10
 TARGET_LIMIT = 100
 STATEMENT_TIMEOUT_MS = NaiveSQLBaseline.STATEMENT_TIMEOUT_MS
