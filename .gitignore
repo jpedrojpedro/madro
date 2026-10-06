@@ -239,3 +239,8 @@ scripts/dowser_db_schema.sql
 
 # MacOS
 .DS_Store
+
+# Working benchmark outputs (curated snapshots live under results/)
+/comparison_grid.xlsx
+/comparison_results.json
+/paper_tables.json

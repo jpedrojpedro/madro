@@ -1,8 +1,7 @@
 """
 Looks up which identity column Ground Truth resolved to for each question,
 so Baseline can be told the same field name up front. Ground Truth is now
-the authority on entity granularity — see
-docs/adr/0001-ground-truth-is-the-benchmark-reference.md — replacing the old
+the authority on entity granularity — replacing the old
 MADRO-run-voting approach this module's predecessor (madro_reference.py)
 implemented.
 

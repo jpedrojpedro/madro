@@ -91,8 +91,7 @@ benchmark-ground-truth:
 # Reference-100 (the paper's Ground Truth): each question's 2026-08-28 Ground
 # Truth SQL from allure-results-thesis/, re-executed with LIMIT 100 — or
 # regenerated under that run's protocol for the questions whose rephrase has
-# changed since. See tests/benchmark/test_reference_rerun.py and
-# docs/adr/0013-reference-100-rebuilt-from-the-2026-08-28-ground-truth.md.
+# changed since. See tests/benchmark/test_reference_rerun.py.
 # K/RUN_TIMESTAMP resume a partial run, same as benchmark-ground-truth:
 #   make benchmark-reference-rerun
 #   make benchmark-reference-rerun K="12 to 12" RUN_TIMESTAMP=2026-09-25T20:00:00Z
@@ -108,8 +107,7 @@ benchmark-reference-rerun:
 #
 # APPROACH is mandatory (the MADRO run label to compare against, e.g. the
 # value printed as "approach" in that run's Allure parameters). Ground Truth
-# is the reference for both Baseline and MADRO (see
-# docs/adr/0001-ground-truth-is-the-benchmark-reference.md) and must already
+# is the reference for both Baseline and MADRO and must already
 # have a run in allure-results/ (`make benchmark-ground-truth`).
 # BASELINE_MODEL, RUN_AT, BASELINE_RUN_AT, GROUND_TRUTH_RUN_AT, OUT, and
 # GRID_OUT are optional overrides. BASELINE_MODEL selects which baseline

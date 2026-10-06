@@ -26,8 +26,7 @@ class ResponseSynthesisAgent:
         # Grouped by sub-demand rather than one flat list, so the model can
         # explicitly connect entities across groups (e.g. a profile in one
         # group to the items it follows in another) instead of reasoning over
-        # an undifferentiated pool — see
-        # docs/adr/0009-relevance-ranking-is-scoped-per-sub-demand.md. An
+        # an undifferentiated pool. An
         # entity resolved from more than one sub-demand's artifacts appears in
         # each group it belongs to.
         groups: dict[str, list] = {}
@@ -44,7 +43,7 @@ class ResponseSynthesisAgent:
         # the real DB, so it re-exposes any @-mentioned handle even though
         # thread_workflow.py already pseudonymized it going into decomposition
         # — evidence here has no `@` prefix at all (bare DB column values), so
-        # it needs its own pass. See docs/adr/0012-rot13-pseudonymize-mentions.md.
+        # it needs its own pass.
         handles = extract_mentions(demand)
         safe_demand = pseudonymize(demand, handles)
         safe_evidence = pseudonymize(evidence, handles)

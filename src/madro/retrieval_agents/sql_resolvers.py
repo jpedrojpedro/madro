@@ -21,7 +21,7 @@ class GeminiSQLResolver:
     retrieval_agents/schemas/*.md and schema_docs.py). Falls back to the
     dynamically-built annotated Markdown (configs/dowser_schema.md, via
     schema_scope.build_scoped_schema) when the caller has no static doc for
-    this agent yet — see docs/adr/0007-static-per-agent-schema-docs-for-gemini-resolver.md."""
+    this agent yet."""
 
     def __init__(self, tables: list[str], result_limit: int | None, schema_doc: str | None = None):
         self._baseline = NaiveSQLBaseline(

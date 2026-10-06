@@ -19,7 +19,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      #- /Users/joao.pinheiro/Documents/thesis/dowser_prod-2026_04_15_14_05_26-dump.sql:/tmp/dowser_prod-2026_04_15_14_05_26-dump.sql
+      #- ./dowser-dump.sql:/tmp/dowser-dump.sql
       - pgdata_dowser:/var/lib/postgresql/data
 
 volumes:

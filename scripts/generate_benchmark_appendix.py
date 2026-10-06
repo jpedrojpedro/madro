@@ -5,7 +5,7 @@ LaTeX/PDF companion document with one page per benchmark question, showing
 that question's full MADRO pipeline execution trace (sub-demands, published
 jobs, per-agent generated SQL, top-ranked entities, synthesized answer) for a
 given MADRO run, already sitting in allure-results/ (from `make benchmark`).
-See docs/adr/0006-benchmark-execution-appendix-is-a-standalone-trace-not-an-evaluation-artifact.md.
+It is a standalone execution trace, not an evaluation artifact.
 
 Two outputs per selected question, under --out-dir:
   data/<id>.json  -- stable extraction of the 5-stage trace (checked into

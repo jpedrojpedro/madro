@@ -1,7 +1,7 @@
 """
 Compares a retrieved result set (Baseline's rows or MADRO's ranked entities)
 against Ground Truth's rows, which stands as the reference ("relevant") set
-for both — see docs/adr/0001-ground-truth-is-the-benchmark-reference.md.
+for both.
 
 All three sides are plain, already rank-ordered `list[dict]` — either live
 in-process objects (`NaiveSQLOutcome.rows`) or records parsed back out of
@@ -83,8 +83,7 @@ def compare(reference_records: list[dict], retrieved_records: list[dict]) -> dic
     scored against it. Only the retrieved side is cut at k: precision@k is
     the fraction of retrieved's top-k present anywhere in the reference, and
     recall@k the fraction of the whole reference found in retrieved's top-k —
-    set containment normalised by one side's size, see
-    docs/adr/0013-reference-100-rebuilt-from-the-2026-08-28-ground-truth.md.
+    set containment normalised by one side's size.
 
     Also reports whether the two sides even agree on *what kind* of entity
     they're returning (`identity_match`) — a real 0% overlap on the wrong

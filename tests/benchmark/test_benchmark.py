@@ -11,8 +11,8 @@ Run with:
     make benchmark SAMPLE=25 FUSION_LEX=0.3 FUSION_SEM=0.7
 
 pytest-django is intentionally disabled for this run (see Makefile: `-p no:django`)
-because this suite hits the real dev databases directly — see
-docs/plan discussion in the "Key constraint" section for why.
+because this suite hits the real dev databases directly: the schema is
+unmanaged and the scraped source data can't be recreated by migrations.
 """
 
 import asyncio
@@ -122,7 +122,7 @@ def pipeline() -> Pipeline:
 def _effective_prompt(question: dict) -> str:
     """`rephrase` stands in for a clarification turn MADRO doesn't implement
     yet — used in place of `prompt` whenever present, uniformly across
-    Ground Truth, Baseline, and MADRO. See CONTEXT.md's `effective prompt`."""
+    Ground Truth, Baseline, and MADRO."""
     return question.get("rephrase") or question["prompt"]
 
 

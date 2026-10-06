@@ -84,8 +84,7 @@ class Message(YamlExportMixin, db_models.Model):
     # answer should ultimately be (e.g. "profile"), independent of which
     # table/agent actually retrieves it — null for non-sub-demand messages.
     # Overrides the invoked RetrievalAgent's own static `identity` when they
-    # differ — see retrieval_agents/base.py's _resolve_identity() and
-    # docs/adr/0011-target-entity-overrides-agent-identity.md.
+    # differ — see retrieval_agents/base.py's _resolve_identity().
     target_entity = db_models.TextField(null=True, blank=True)
     created_at = db_models.DateTimeField(auto_now_add=True)
 

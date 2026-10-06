@@ -11,16 +11,14 @@ Ranked per sub-demand, not per thread: each entity is scored only against
 the text of the sub-demand whose JobExecution(s) actually produced it, and
 each sub-demand's own top-k is unioned (not re-ranked globally) into the
 final result — a numerically larger sub-demand's candidate pool can't crowd
-another sub-demand's evidence out of the top-k. See
-docs/adr/0009-relevance-ranking-is-scoped-per-sub-demand.md.
+another sub-demand's evidence out of the top-k.
 
 S_sem is computed per entity, live, against each entity's own resolved
 record (MultimodalNormalizer.record_to_text) rather than read from
 broker.job_artifact_document — those chunk embeddings are batch-level (one
 retrieval agent call's whole result set synthesized into one document), so
 every candidate in a batch inherited an identical S_sem, erasing semantic
-differentiation between them. See
-docs/adr/0004-per-entity-live-embedding-for-s-sem.md.
+differentiation between them.
 
 S_lex (ts_rank, typically ~0.01-0.03 here) and S_sem (cosine similarity,
 typically ~0.5-0.65) live on very different numeric scales, so a raw
@@ -82,8 +80,7 @@ class RelevanceRanker:
 
     async def rank(self, thread_id: str) -> list[RankedEntity]:
         """Compute relevance scores for all candidate entities in a thread,
-        scoring each against the sub-demand that actually asked for it —
-        see docs/adr/0009-relevance-ranking-is-scoped-per-sub-demand.md."""
+        scoring each against the sub-demand that actually asked for it."""
         async with async_cursor() as cur:
             # Per-artifact identity + raw records, for entity resolution. s_lex
             # is NOT recomputed here — each retrieval agent already computes its

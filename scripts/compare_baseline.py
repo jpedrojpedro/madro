@@ -3,8 +3,7 @@
 Compares existing Ground Truth, Baseline, and MADRO benchmark runs' Allure
 results against each other — all three already sitting in allure-results/,
 so this never re-runs any pipeline. Ground Truth is the reference
-("relevant") set for both comparisons — see
-docs/adr/0001-ground-truth-is-the-benchmark-reference.md.
+("relevant") set for both comparisons.
 
 Produced by:
     tests/benchmark/test_ground_truth.py  (Ground Truth runs, parent_suite
@@ -444,8 +443,7 @@ def _aggregate(per_question: dict, side: str) -> dict:
     Within that, a side that failed to answer ("error"/"missing") scores 0
     rather than being skipped, so a less-reliable tool can't look more
     accurate simply by attempting fewer, easier questions than the other side
-    — see /Users/joao.pinheiro/Workspace/.DSc/PhD_Thesis's
-    docs/adr/0005-score-unanswered-questions-as-zero.md. `valid_n` (how many
+    — the convention of the thesis's evaluation metrics. `valid_n` (how many
     were actually answered) is still reported alongside the fixed `n`, so
     reliability and ranking accuracy remain two separate, visible numbers."""
     values = {k: {"precision": [], "recall": []} for k in RANKS}

@@ -71,8 +71,7 @@ class SubDemand(BaseModel):
     demand: str
     topic_name: str
     # The kind of entity this sub-demand's answer should ultimately be (e.g.
-    # "profile"), independent of which topic/agent actually retrieves it —
-    # see docs/adr/0011-target-entity-overrides-agent-identity.md.
+    # "profile"), independent of which topic/agent actually retrieves it.
     target_entity: str
 
 

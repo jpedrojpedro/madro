@@ -101,7 +101,7 @@ def identity_hints() -> dict[str, str]:
 def _effective_prompt(question: dict) -> str:
     """`rephrase` stands in for a clarification turn MADRO doesn't implement
     yet — used in place of `prompt` whenever present, uniformly across
-    Ground Truth, Baseline, and MADRO. See CONTEXT.md's `effective prompt`."""
+    Ground Truth, Baseline, and MADRO."""
     return question.get("rephrase") or question["prompt"]
 
 

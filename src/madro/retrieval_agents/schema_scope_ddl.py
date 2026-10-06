@@ -10,7 +10,7 @@ ENUM` — `alter table/type ... owner to`, `create index`, and `create
 function` (the UUID-extension/trigger internals) are dropped as noise
 irrelevant to writing a retrieval query. Same `public.*`-only scoping intent
 as schema_scope.py: this only ever describes the dowser domain tables, never
-`benchmark_hints.*` (see docs/adr/0003-on-the-fly-scoped-sql-retrieval-agents.md).
+`benchmark_hints.*`.
 """
 
 import re

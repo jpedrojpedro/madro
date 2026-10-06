@@ -2,8 +2,8 @@
 Ground Truth: the authoritative answer for each benchmark question. Runs the
 same zero-shot SQL resolver as Baseline (`NaiveSQLBaseline`), Gemini only,
 but scoped to only the tables named in that question's `hint` — see
-`hint_schema.build_hint_schema()` and CONTEXT.md's `hint`/`Ground Truth`
-entries for why this scoping is exclusive to Ground Truth.
+`hint_schema.build_hint_schema()`. This scoping is exclusive to Ground Truth,
+so Baseline's and MADRO's table choices stay unsteered.
 
 Run with:
     make benchmark-ground-truth
@@ -61,7 +61,7 @@ def event_loop():
 def _effective_prompt(question: dict) -> str:
     """`rephrase` stands in for a clarification turn MADRO doesn't implement
     yet — used in place of `prompt` whenever present, uniformly across
-    Ground Truth, Baseline, and MADRO. See CONTEXT.md's `effective prompt`."""
+    Ground Truth, Baseline, and MADRO."""
     return question.get("rephrase") or question["prompt"]
 
 

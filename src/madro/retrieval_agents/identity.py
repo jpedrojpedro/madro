@@ -13,8 +13,7 @@ class EntityRef(BaseModel):
     publication_id) may or may not already be an entity elsewhere in the
     thread — EntityResolver merges into the primary identity if that entity
     exists, otherwise resolves the record under `fallback` instead of forcing
-    it into an entity nothing else in the thread produced. See
-    docs/adr/0005-conditional-collapse-for-comment-identity.md."""
+    it into an entity nothing else in the thread produced."""
     field: str
     kind: str
     fallback: EntityRef | None = None

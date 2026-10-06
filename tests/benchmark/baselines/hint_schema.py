@@ -4,7 +4,7 @@ generation: only the tables/views a question's `hint` array names, pulled
 out of `configs/dowser_schema.md` (`public.*`) and `benchmark_hints/schema.md`
 (`benchmark_hints.*`) docs — never the whole schema, so Ground Truth's
 system prompt stays as small as the question actually needs. Baseline and
-MADRO never call this; see CONTEXT.md's `hint` entry for why. RetrievalAgents
+MADRO never call this, so their table choices stay unsteered. RetrievalAgents
 use their own public.*-only equivalent instead — see
 `madro.retrieval_agents.schema_scope` — which has no access to
 `benchmark_hints.*` at all.

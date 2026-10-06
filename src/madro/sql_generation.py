@@ -204,8 +204,7 @@ class NaiveSQLBaseline:
         pseudonymization.py) — reversed back to the real account name in the
         generated SQL text, on every attempt, before it's validated or
         executed, so the query actually matches real database rows and the
-        returned NaiveSQLOutcome.sql reflects what really ran. See
-        docs/adr/0012-rot13-pseudonymize-mentions.md."""
+        returned NaiveSQLOutcome.sql reflects what really ran."""
         history: list[FailedAttempt] = []
         base_prompt = self._build_prompt(prompt, identity_hint)
         current_prompt = base_prompt

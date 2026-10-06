@@ -1,10 +1,9 @@
 """
 Hides @-mentioned account names from every LLM call in the pipeline, without
-persisting a mapping anywhere — see docs/adr/0012-rot13-pseudonymize-mentions.md.
+persisting a mapping anywhere.
 
-Some real account names (e.g. @broxadasinistra — "broxada" is vulgar
-Brazilian Portuguese slang) trip Gemini's PROHIBITED_CONTENT safety filter on
-sight, even though nothing else about the demand or the retrieved data is
+Some real account names (e.g. @broxadasinistra) trip Gemini's
+PROHIBITED_CONTENT safety filter on sight, even though nothing else about the demand or the retrieved data is
 remotely sensitive. ROT13 is self-inverse (encoding twice returns the
 original), so pseudonymizing and reversing are the same underlying
 operation — no mapping table needs threading through the DB the way

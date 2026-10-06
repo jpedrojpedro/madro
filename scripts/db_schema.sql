@@ -78,7 +78,7 @@ create table flow_control.message (
     token_count integer,
     -- DemandCategorizationAgent's declared answer-entity kind for a
     -- sub-demand message (e.g. 'profile') — null for non-sub-demand
-    -- messages. See docs/adr/0011-target-entity-overrides-agent-identity.md.
+    -- messages. Overrides the invoked agent's own static identity.
     target_entity text,
     created_at timestamptz default (now() at time zone 'utc')
 );

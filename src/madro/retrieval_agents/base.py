@@ -70,8 +70,7 @@ class RetrievalAgent(ABC):
         restaurant *profile* rather than answer with the post itself. Falls
         back to `self.identity` as-is (preserving any `fallback` it declares)
         when there's no override to apply, rather than reconstructing an
-        equivalent EntityRef from scratch. See
-        docs/adr/0011-target-entity-overrides-agent-identity.md."""
+        equivalent EntityRef from scratch."""
         if target_entity and (not self.identity or target_entity != self.identity.kind):
             return EntityRef(field=f"{target_entity}_id", kind=target_entity)
         return self.identity
@@ -93,7 +92,7 @@ class RetrievalAgent(ABC):
         (see each agent's own SCHEMA_DOC constant) resolved here to its text via
         schema_docs.SCHEMA_DOCS — GeminiSQLResolver's hand-authored scoped
         schema doc; ArcticSQLResolver ignores it and keeps building DDL from
-        `tables`. See docs/adr/0007-static-per-agent-schema-docs-for-gemini-resolver.md.
+        `tables`.
 
         `target_entity`, when it overrides this agent's own identity (see
         _resolve_identity), also changes `identity_hint` — the resolver tells
@@ -105,7 +104,7 @@ class RetrievalAgent(ABC):
         pseudonymization.py) this agent's own `username` kwarg carries —
         reversed back to the real account name inside the generated SQL
         text, before it executes, so the query actually matches real
-        database rows. See docs/adr/0012-rot13-pseudonymize-mentions.md."""
+        database rows."""
         schema_doc_text = SCHEMA_DOCS[schema_doc] if schema_doc else None
         resolver = get_retrieval_sql_resolver(tables, sample, schema_doc_text)
         identity = self._resolve_identity(target_entity)

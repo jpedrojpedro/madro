@@ -1,7 +1,6 @@
 """
 Reference-100: the paper's single Ground Truth run, rebuilt from the
-2026-08-28 Ground Truth run instead of regenerated from scratch — see
-docs/adr/0013-reference-100-rebuilt-from-the-2026-08-28-ground-truth.md.
+2026-08-28 Ground Truth run instead of regenerated from scratch.
 
 For every question, the reference SQL is taken verbatim from
 SOURCE_ALLURE_DIR's run, except the questions in REGENERATED (whose

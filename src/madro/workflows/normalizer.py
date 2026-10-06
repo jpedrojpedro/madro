@@ -67,7 +67,7 @@ class MultimodalNormalizer:
         fields (e.g. img_caption, ocr_text) as their own blocks. Shared by
         synthesize_markdown's per-record document and RelevanceRanker's
         per-entity ranking embedding, so the two representations never drift
-        apart — see docs/adr/0004-per-entity-live-embedding-for-s-sem.md."""
+        apart."""
         if not isinstance(record, dict):
             return str(record)
         lines = []

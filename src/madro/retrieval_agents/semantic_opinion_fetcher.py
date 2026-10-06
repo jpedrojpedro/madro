@@ -10,7 +10,7 @@ class SemanticOpinionFetcherAgent(RetrievalAgent):
     # publication's entity when some other artifact in the thread already
     # produced one. When none did, EntityResolver falls back to comment_id
     # instead of forcing the comment into a publication entity nothing else
-    # in the thread surfaced. See docs/adr/0005-conditional-collapse-for-comment-identity.md.
+    # in the thread surfaced.
     identity = EntityRef(
         field="publication_id",
         kind="publication",

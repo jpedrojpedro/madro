@@ -13,8 +13,7 @@ async def _build_topic_catalog() -> tuple[str, set[str]]:
     judge a sub-demand's retrieval target against what a topic really
     resolves to, instead of guessing from the topic name alone. Also returns
     every distinct entity kind seen across the catalog, as the controlled
-    vocabulary target_entity must be chosen from — see
-    docs/adr/0011-target-entity-overrides-agent-identity.md."""
+    vocabulary target_entity must be chosen from."""
     topics = [t async for t in Topic.objects.all().order_by("name")]
 
     kinds_by_topic: dict = {}

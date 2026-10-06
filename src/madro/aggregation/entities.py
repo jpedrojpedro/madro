@@ -19,6 +19,5 @@ class RankedEntity:
     # The sub-demand(s) whose ranking pool surfaced this entity into the
     # top-k — usually one, more than one if the same real-world entity was
     # resolved from artifacts belonging to different sub-demands. Drives
-    # ResponseSynthesisAgent's per-sub-demand evidence grouping — see
-    # docs/adr/0009-relevance-ranking-is-scoped-per-sub-demand.md.
+    # ResponseSynthesisAgent's per-sub-demand evidence grouping.
     sub_demands: list[str] = field(default_factory=list)

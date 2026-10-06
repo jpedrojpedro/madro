@@ -24,7 +24,7 @@ class EntityResolver:
     artifact in the thread produced one — the record merges into it, same as
     always. Otherwise it resolves under `fallback` (e.g. comment_id) instead
     of being forced into a publication entity nothing else in the thread
-    surfaced. See docs/adr/0005-conditional-collapse-for-comment-identity.md."""
+    surfaced."""
 
     def resolve(
         self, records_by_artifact: dict[str, tuple[dict | None, list[dict]]]

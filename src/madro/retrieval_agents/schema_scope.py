@@ -3,7 +3,7 @@ Builds a per-agent scoped schema doc for on-the-fly SQL retrieval agents:
 only the `public.*` table sections a given agent actually needs, pulled out
 of `configs/dowser_schema.md`. Deliberately has no access to
 `benchmark_hints.*` at all — those materialized views exist only for Ground
-Truth's use (see docs/adr/0001-ground-truth-is-the-benchmark-reference.md);
+Truth's use;
 RetrievalAgents must work from the same public schema a real, un-hinted
 agent would see.
 """
